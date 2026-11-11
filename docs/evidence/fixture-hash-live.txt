@@ -1,0 +1,16 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.mts:7:26). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.1.0 /Users/shaayeralam/Savespace
+
+stdout | tests/integration/restore-fixtures.test.ts > open-only guarantee (fixture hashes) > capture + restore leaves every fixture file byte-identical with the same mtime
+[fixture-hash] 38 files verified unchanged; new files by other apps: ["/home/code/.DS_Store"]; 15 commands; live=true; statuses=["opened","opened","opened","skipped","skipped","opened","opened","opened","skipped","skipped","skipped","skipped","skipped","skipped","skipped"]
+
+ ✓ tests/integration/restore-fixtures.test.ts > open-only guarantee (fixture hashes) > capture + restore leaves every fixture file byte-identical with the same mtime 3685ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  22:20:54
+   Duration  4.00s (tests 95%, import 4%)
+

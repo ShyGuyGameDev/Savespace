@@ -1,0 +1,43 @@
+appId: app.waypoint.desktop
+productName: Waypoint
+copyright: Copyright © 2026
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+extraResources:
+  - from: src/main/db/migrations
+    to: migrations
+  - from: resources/trayTemplate.png
+    to: trayTemplate.png
+  - from: resources/trayTemplate@2x.png
+    to: trayTemplate@2x.png
+  # Bundled local-AI engine (Ollama, MIT), fetched + SHA-256 verified by scripts/fetch-ollama.mjs
+  - from: resources/ollama
+    to: ollama
+asarUnpack:
+  - '**/*.node'
+npmRebuild: false
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [arm64]
+  icon: build/icon.png
+  minimumSystemVersion: '15.0'
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Unsigned unless CSC_NAME / CSC_LINK is set (see SETUP_GUIDE.md, step 11).
+  identity: null
+  notarize: false
+  extendInfo:
+    NSAppleEventsUsageDescription: Waypoint asks your apps which files, tabs and drafts are open (read-only) so it can reopen them later. It never changes anything in them.
+    LSApplicationCategoryType: public.app-category.productivity
+dmg:
+  title: Waypoint ${version}
+  artifactName: Waypoint-${version}-${arch}.dmg

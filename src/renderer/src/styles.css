@@ -1,0 +1,101 @@
+@import 'tailwindcss';
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-selected: var(--selected);
+}
+
+:root {
+  color-scheme: light dark;
+  --background: #ffffff;
+  --foreground: #1d1d1f;
+  --surface: rgba(255, 255, 255, 0.72);
+  --muted: #f2f2f4;
+  --muted-foreground: #6e6e73;
+  --border: rgba(0, 0, 0, 0.09);
+  --ring: #3478f6;
+  --accent: #eef3fe;
+  --accent-foreground: #1e5bd6;
+  --primary: #2f6fef;
+  --primary-foreground: #ffffff;
+  --success: #1f9d55;
+  --warning: #b7791f;
+  --danger: #d93f3f;
+  --selected: rgba(47, 111, 239, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1c1c1e;
+    --foreground: #f5f5f7;
+    --surface: rgba(30, 30, 32, 0.6);
+    --muted: #2a2a2d;
+    --muted-foreground: #98989f;
+    --border: rgba(255, 255, 255, 0.09);
+    --ring: #5b9bff;
+    --accent: #1f2a3f;
+    --accent-foreground: #8fb6ff;
+    --primary: #4b86ff;
+    --primary-foreground: #ffffff;
+    --success: #3ccf7c;
+    --warning: #e0a840;
+    --danger: #ff6b6b;
+    --selected: rgba(91, 155, 255, 0.18);
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+.selectable {
+  user-select: text;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

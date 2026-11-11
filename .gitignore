@@ -1,0 +1,55 @@
+# dependencies
+node_modules/
+
+# build output
+out/
+dist/
+release/
+build/Release/
+*.tsbuildinfo
+.vite/
+.electron-vite/
+
+# test output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+tests/.tmp/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key.enc
+
+# local databases
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+!tests/fixtures/**/*.db
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# editors
+.idea/
+*.swp
+.vscode/*
+!.vscode/extensions.json
+
+# bundled AI engine (downloaded + checksum-verified by scripts/fetch-ollama.mjs)
+resources/ollama/

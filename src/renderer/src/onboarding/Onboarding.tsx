@@ -1,0 +1,364 @@
+import { AnimatePresence, motion } from 'framer-motion'
+import {
+  Accessibility,
+  Bot,
+  Check,
+  ChevronRight,
+  Cpu,
+  EyeOff,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { APP_NAME, DEFAULT_HOTKEYS } from '@shared/constants'
+import { Button } from '@/components/ui/button'
+import { Badge, Kbd } from '@/components/ui/misc'
+import { api, useIpc } from '@/lib/bridge'
+import { formatHotkey } from '@/lib/hotkeys'
+import { AiDownloadBar, useAiStatus } from '@/components/AiDownload'
+import { cn } from '@/lib/utils'
+
+const STEPS = ['welcome', 'privacy', 'accessibility', 'automation', 'ai', 'done'] as const
+type Step = (typeof STEPS)[number]
+
+export function Onboarding({ onDone }: { onDone: () => void }) {
+  const [step, setStep] = useState<Step>('welcome')
+  const idx = STEPS.indexOf(step)
+  const next = () => setStep(STEPS[Math.min(idx + 1, STEPS.length - 1)]!)
+  const back = () => setStep(STEPS[Math.max(idx - 1, 0)]!)
+
+  const finish = async () => {
+    await api('settings:set', { onboardingComplete: true })
+    onDone()
+  }
+
+  return (
+    <div className="flex h-full flex-col bg-background">
+      <div className="drag h-12 shrink-0" />
+      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-8 pb-8">
+        <ol className="mb-8 flex items-center gap-1.5" aria-label="Setup progress">
+          {STEPS.map((s, i) => (
+            <li
+              key={s}
+              aria-current={s === step ? 'step' : undefined}
+              className={cn(
+                'h-1 flex-1 rounded-full transition-colors',
+                i <= idx ? 'bg-primary' : 'bg-muted',
+              )}
+            >
+              <span className="sr-only">
+                Step {i + 1} of {STEPS.length}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <AnimatePresence mode="wait">
+          <motion.section
+            key={step}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            className="flex flex-1 flex-col"
+            aria-live="polite"
+          >
+            {step === 'welcome' && <Welcome />}
+            {step === 'privacy' && <Privacy />}
+            {step === 'accessibility' && <AccessibilityStep />}
+            {step === 'automation' && <AutomationStep />}
+            {step === 'ai' && <AiStep />}
+            {step === 'done' && <Done />}
+          </motion.section>
+        </AnimatePresence>
+        <footer className="mt-6 flex items-center justify-between">
+          <Button variant="ghost" onClick={back} disabled={idx === 0}>
+            Back
+          </Button>
+          <div className="flex items-center gap-2">
+            {step !== 'welcome' && step !== 'privacy' && step !== 'done' && (
+              <Button variant="ghost" onClick={next}>
+                Skip for now
+              </Button>
+            )}
+            {step === 'done' ? (
+              <Button onClick={finish} autoFocus>
+                Start using {APP_NAME}
+              </Button>
+            ) : (
+              <Button onClick={next} autoFocus>
+                Continue <ChevronRight aria-hidden />
+              </Button>
+            )}
+          </div>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+function Hero({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <>
+      <div
+        className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground [&_svg]:size-6"
+        aria-hidden
+      >
+        {icon}
+      </div>
+      <h1 className="mb-2 text-xl font-semibold tracking-tight">{title}</h1>
+      <div className="space-y-3 text-[14px] leading-relaxed text-muted-foreground">{children}</div>
+    </>
+  )
+}
+
+function Welcome() {
+  return (
+    <Hero icon={<Sparkles />} title={`Welcome to ${APP_NAME}`}>
+      <p>
+        When you step away from a project, {APP_NAME} saves a{' '}
+        <strong className="text-foreground">checkpoint</strong>: which apps, files, tabs, drafts and
+        tickets you had open. When you come back, it reopens them and shows a short “what you were
+        doing” note.
+      </p>
+      <p className="rounded-lg border border-border bg-muted/50 p-3 text-foreground">
+        <ShieldCheck className="mr-1.5 inline size-4 text-success" aria-hidden />
+        <strong>{APP_NAME} only ever opens things.</strong> It never types, clicks, edits, saves,
+        sends, deletes or closes anything in your other apps.
+      </p>
+    </Hero>
+  )
+}
+
+function Privacy() {
+  return (
+    <Hero icon={<Lock />} title="What stays on your Mac">
+      <div className="grid grid-cols-2 gap-3 text-[13px]">
+        <div className="rounded-lg border border-border p-3">
+          <p className="mb-1.5 font-medium text-foreground">Remembered</p>
+          <ul className="list-disc space-y-1 pl-4">
+            <li>App and window names</li>
+            <li>File and folder paths</li>
+            <li>Web page addresses and titles</li>
+            <li>Git branch and status</li>
+            <li>Email subjects and draft IDs</li>
+            <li>Calendar event titles</li>
+          </ul>
+        </div>
+        <div className="rounded-lg border border-border p-3">
+          <p className="mb-1.5 flex items-center gap-1 font-medium text-foreground">
+            <EyeOff className="size-3.5" aria-hidden /> Never
+          </p>
+          <ul className="list-disc space-y-1 pl-4">
+            <li>Screenshots or screen recording</li>
+            <li>What’s inside your documents</li>
+            <li>Email or message text</li>
+            <li>Keystrokes</li>
+            <li>Private or incognito windows</li>
+            <li>Password managers</li>
+          </ul>
+        </div>
+      </div>
+      <p>
+        Everything is stored encrypted on this Mac. Summaries use a local AI model if you have one.
+        Nothing is sent to the cloud.
+      </p>
+    </Hero>
+  )
+}
+
+function usePolledPermissions() {
+  const q = useIpc('permissions:status', undefined, { refetchInterval: 1500 })
+  return q
+}
+
+function AccessibilityStep() {
+  const { data, refetch } = usePolledPermissions()
+  const granted = data?.accessibility === 'granted'
+  return (
+    <Hero icon={<Accessibility />} title="Let Waypoint see window titles">
+      <p>
+        macOS calls this <strong className="text-foreground">Accessibility</strong>. {APP_NAME} uses
+        it only to read the <em>titles and positions</em> of your windows, so it knows which
+        document or project each window belongs to. It does not need Screen Recording, and it never
+        controls your apps.
+      </p>
+      <p>
+        <strong className="text-foreground">Without it:</strong> {APP_NAME} still works. It sees
+        which app is in front and can still read tabs, editor files and drafts from apps that
+        support it, but it can’t tell your windows apart.
+      </p>
+      <div className="flex items-center gap-3 pt-2">
+        {granted ? (
+          <Badge tone="success">
+            <Check className="size-3" aria-hidden /> Allowed
+          </Badge>
+        ) : (
+          <>
+            <Button
+              onClick={async () => {
+                await api('permissions:promptAccessibility')
+                await refetch()
+              }}
+            >
+              Open System Settings
+            </Button>
+            <span className="text-[12px]">
+              Then turn on <strong className="text-foreground">{APP_NAME}</strong> (or{' '}
+              <em>Electron</em> while developing) under Privacy &amp; Security → Accessibility.
+            </span>
+          </>
+        )}
+      </div>
+    </Hero>
+  )
+}
+
+function AutomationStep() {
+  const { data, refetch } = usePolledPermissions()
+  const { data: adapters } = useIpc('adapters:list')
+  const installed = new Set((adapters ?? []).filter((a) => a.installed).flatMap((a) => a.bundleIds))
+  const [busy, setBusy] = useState<string | null>(null)
+  const targets = [
+    ['com.apple.systemevents', 'System Events', 'List your open windows.'],
+    ['com.google.Chrome', 'Google Chrome', 'Read tab addresses (never incognito).'],
+    ['com.apple.Safari', 'Safari', 'Open or focus saved pages.'],
+    ['com.apple.mail', 'Mail', 'Subjects and IDs of drafts (never the text).'],
+    ['com.apple.Notes', 'Notes', 'Which note was selected (title only).'],
+    ['com.apple.iCal', 'Calendar', 'Titles of events around now.'],
+    ['com.apple.finder', 'Finder', 'Which folders were open.'],
+  ] as const
+  return (
+    <Hero icon={<Bot />} title="Ask your apps what’s open">
+      <p>
+        macOS asks you once per app before {APP_NAME} may talk to it (
+        <strong className="text-foreground">Automation</strong>). Each request is read-only. The app
+        must be open for macOS to ask; you can also do this later, the first time it’s needed.
+      </p>
+      <ul className="divide-y divide-border rounded-lg border border-border text-[13px]">
+        {targets
+          .filter(
+            ([id]) =>
+              id === 'com.apple.systemevents' ||
+              id === 'com.apple.finder' ||
+              installed.size === 0 ||
+              installed.has(id),
+          )
+          .map(([id, name, why]) => {
+            const state = data?.automation[id] ?? 'not-determined'
+            return (
+              <li key={id} className="flex items-center gap-3 px-3 py-2">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground">{name}</p>
+                  <p className="text-[12px]">{why}</p>
+                </div>
+                {state === 'granted' ? (
+                  <Badge tone="success">Allowed</Badge>
+                ) : state === 'denied' ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => api('permissions:openSettings', { pane: 'automation' })}
+                  >
+                    Denied — open Settings
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={busy === id}
+                    onClick={async () => {
+                      setBusy(id)
+                      await api('permissions:requestAutomation', { bundleId: id })
+                      await refetch()
+                      setBusy(null)
+                    }}
+                  >
+                    {busy === id ? 'Asking…' : 'Ask'}
+                  </Button>
+                )}
+              </li>
+            )
+          })}
+      </ul>
+    </Hero>
+  )
+}
+
+function AiStep() {
+  const { status, download } = useAiStatus()
+  const asked = useRef(false)
+  // Local AI is built in: start the one-time model download as soon as this step is shown.
+  useEffect(() => {
+    if (asked.current || !status || !status.installed || status.modelAvailable || download?.active)
+      return
+    asked.current = true
+    void api('ai:download')
+  }, [status, download])
+  const ready = status?.modelAvailable || download?.status === 'success'
+  return (
+    <Hero icon={<Cpu />} title="Local summaries, built in">
+      <p>
+        {APP_NAME} writes a 2–3 sentence “what you were doing” recap with a small AI model that runs{' '}
+        <strong className="text-foreground">entirely on this Mac</strong>. Nothing you work on is
+        ever sent anywhere.
+      </p>
+      {!status?.installed ? (
+        <p className="rounded-lg border border-border p-3 text-[13px]">
+          This build doesn’t include the AI engine, so you’ll get simple summaries instead.
+        </p>
+      ) : ready ? (
+        <Badge tone="success">
+          <Check className="size-3" aria-hidden /> Ready: {status?.selectedModel}
+        </Badge>
+      ) : (
+        <div className="space-y-2 rounded-lg border border-border p-3 text-[13px]">
+          <p className="font-medium text-foreground">Getting the AI model ready (one time)</p>
+          {download ? <AiDownloadBar d={download} /> : <p className="text-[12px]">Starting…</p>}
+          <p className="text-[12px]">
+            {status.recommendedModel} was picked for your {status.ramGb} GB of memory. You can keep
+            going; the download continues in the background, and you can change the model or turn AI
+            off in Settings.
+          </p>
+          {download?.error && (
+            <Button size="sm" variant="secondary" onClick={() => void api('ai:download')}>
+              Try again
+            </Button>
+          )}
+        </div>
+      )}
+    </Hero>
+  )
+}
+
+function Done() {
+  const [hk, setHk] = useState({
+    palette: DEFAULT_HOTKEYS.palette as string,
+    checkpoint: DEFAULT_HOTKEYS.checkpointNow as string,
+  })
+  useEffect(() => {
+    void api('settings:get').then((s) =>
+      setHk({ palette: s.hotkeyPalette, checkpoint: s.hotkeyCheckpoint }),
+    )
+  }, [])
+  return (
+    <Hero icon={<Check />} title="You’re set">
+      <p>
+        {APP_NAME} lives in your menu bar and quietly saves checkpoints when you switch projects, go
+        idle, or close your laptop.
+      </p>
+      <ul className="space-y-2 text-[13px]">
+        <li className="flex items-center gap-2">
+          <Kbd>{formatHotkey(hk.palette)}</Kbd> Open the command palette to resume a project
+        </li>
+        <li className="flex items-center gap-2">
+          <Kbd>{formatHotkey(hk.checkpoint)}</Kbd> Save a checkpoint right now
+        </li>
+      </ul>
+      <p>
+        New projects appear in <strong className="text-foreground">Suggestions</strong>. Nothing
+        becomes a project until you confirm it.
+      </p>
+    </Hero>
+  )
+}

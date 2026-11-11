@@ -1,0 +1,6 @@
+out
+dist
+release
+node_modules
+src/main/db/migrations
+package-lock.json
