@@ -2,3 +2,4 @@ Savespace todo list:
  - Be able to link apps up
  - Choose what apps are in a project
  - How often and what to save
+ - Expand to other OS
