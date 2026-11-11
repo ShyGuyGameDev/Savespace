@@ -43,4 +43,5 @@ mac:
     LSApplicationCategoryType: public.app-category.productivity
 dmg:
   title: Waypoint ${version}
-  artifactName: Waypoint-${version}-${arch}.dmg
+  # Fixed name so the website can always link to releases/latest/download/Waypoint-arm64.dmg
+  artifactName: Waypoint-${arch}.dmg
