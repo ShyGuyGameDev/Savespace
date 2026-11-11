@@ -1,32 +1,17 @@
 :root {
-  --bg: #f6f4fb;
-  --ink: #12131a;
-  --button-bg: #12131a;
-  --button-ink: #ffffff;
-  --button-hover: #2a2c38;
-  --ring: #5b6cff;
-  --blob-a: #c9b9ff;
-  --blob-b: #a8d8ff;
-  --blob-c: #ffd2b8;
-  --blob-d: #b9f0db;
-  --blob-opacity: 0.9;
-  color-scheme: light dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b0c12;
-    --ink: #f6f6fa;
-    --button-bg: #f6f6fa;
-    --button-ink: #12131a;
-    --button-hover: #ffffff;
-    --ring: #8f9bff;
-    --blob-a: #4b3aa8;
-    --blob-b: #1d5f8f;
-    --blob-c: #7a3b5a;
-    --blob-d: #1f6b58;
-    --blob-opacity: 0.55;
-  }
+  /* Always dark: black base with blue, green and teal glows; white text. */
+  --bg: #05070b;
+  --ink: #ffffff;
+  --button-bg: #ffffff;
+  --button-ink: #05070b;
+  --button-hover: #e8f6f4;
+  --ring: #5fd4c4;
+  --blob-a: #1f4fd8; /* blue */
+  --blob-b: #0f9b8e; /* teal */
+  --blob-c: #16a34a; /* green */
+  --blob-d: #0e7490; /* deep teal-blue */
+  --blob-opacity: 0.55;
+  color-scheme: dark;
 }
 
 *,
@@ -66,8 +51,8 @@ body {
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--blob-a) 35%, transparent), transparent 60%),
-    radial-gradient(120% 90% at 50% 100%, color-mix(in srgb, var(--blob-b) 30%, transparent), transparent 60%),
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--blob-a) 22%, transparent), transparent 60%),
+    radial-gradient(120% 90% at 50% 100%, color-mix(in srgb, var(--blob-b) 18%, transparent), transparent 60%),
     var(--bg);
 }
 
@@ -107,6 +92,7 @@ body {
   line-height: 1;
   letter-spacing: -0.045em;
   color: var(--ink);
+  text-shadow: 0 2px 30px rgb(0 0 0 / 0.35);
 }
 
 .download {
@@ -123,8 +109,8 @@ body {
   letter-spacing: -0.01em;
   text-decoration: none;
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.12),
-    0 10px 30px -10px rgb(0 0 0 / 0.35);
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 10px 34px -10px rgb(95 212 196 / 0.45);
   transition:
     transform 160ms ease,
     background-color 160ms ease,
@@ -135,8 +121,8 @@ body {
   background: var(--button-hover);
   transform: translateY(-1px);
   box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.12),
-    0 16px 36px -12px rgb(0 0 0 / 0.4);
+    0 1px 2px rgb(0 0 0 / 0.3),
+    0 16px 40px -12px rgb(95 212 196 / 0.6);
 }
 
 .download:active {
