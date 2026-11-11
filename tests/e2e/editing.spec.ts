@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { launchApp, windowByRoute } from './helpers'
 
 test('edit a checkpoint: change the summary and remove a saved item', async () => {
-  const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+  const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
   const page = await windowByRoute(app, '/')
   await page.getByRole('button', { name: /Atlas API/ }).click()
   await page.getByRole('button', { name: 'Edit checkpoint' }).click()
@@ -17,7 +17,7 @@ test('edit a checkpoint: change the summary and remove a saved item', async () =
 })
 
 test('edit a project (name, colour, what belongs) and delete it; merge/split are gone', async () => {
-  const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+  const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
   const page = await windowByRoute(app, '/')
   await page.getByRole('button', { name: /Marketing site/ }).click()
   await page.getByRole('button', { name: 'Marketing site options' }).click()

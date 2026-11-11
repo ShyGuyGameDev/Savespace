@@ -58,11 +58,11 @@ describe('privacy filter', () => {
 
 describe('signals and matching', () => {
   const repoRoot = (p: string) =>
-    p.startsWith('/Users/me/code/waypoint') ? '/Users/me/code/waypoint' : null
+    p.startsWith('/Users/me/code/savespace') ? '/Users/me/code/savespace' : null
   it('derives repo, host and token signals', () => {
     expect(
-      signalsForRef({ kind: 'file', app: 'x', path: '/Users/me/code/waypoint/src/a.ts' }, repoRoot),
-    ).toEqual(['repo:/Users/me/code/waypoint'])
+      signalsForRef({ kind: 'file', app: 'x', path: '/Users/me/code/savespace/src/a.ts' }, repoRoot),
+    ).toEqual(['repo:/Users/me/code/savespace'])
     expect(
       signalsForRef({
         kind: 'url',
@@ -74,16 +74,16 @@ describe('signals and matching', () => {
       expect.arrayContaining(['host:acme.atlassian.net', 'token:checkpoint', 'token:timeline']),
     )
     expect(
-      signalsForRef({ kind: 'url', app: 'x', url: 'https://github.com/me/waypoint/pull/3' }),
-    ).toContain('token:waypoint')
+      signalsForRef({ kind: 'url', app: 'x', url: 'https://github.com/me/savespace/pull/3' }),
+    ).toContain('token:savespace')
   })
   it('matches paths by prefix but not by sibling name', () => {
-    expect(signalMatches('path:/Users/me/code', 'repo:/Users/me/code/waypoint')).toBe(true)
+    expect(signalMatches('path:/Users/me/code', 'repo:/Users/me/code/savespace')).toBe(true)
     expect(signalMatches('path:/Users/me/code', 'path:/Users/me/codex')).toBe(false)
     expect(signalMatches('host:atlassian.net', 'host:acme.atlassian.net')).toBe(true)
   })
   it('drops stopwords from title tokens', () => {
-    expect(titleTokens('index.ts — waypoint — Visual Studio Code')).toEqual(['waypoint'])
+    expect(titleTokens('index.ts — savespace — Visual Studio Code')).toEqual(['savespace'])
   })
   it('picks the best project with confidence', () => {
     const base = { color: '', createdAt: 0, updatedAt: 0, lastCheckpointAt: null, archived: false }
@@ -92,11 +92,11 @@ describe('signals and matching', () => {
         ...base,
         id: 'a',
         name: 'A',
-        signals: ['repo:/Users/me/code/waypoint', 'host:acme.atlassian.net'],
+        signals: ['repo:/Users/me/code/savespace', 'host:acme.atlassian.net'],
       },
       { ...base, id: 'b', name: 'B', signals: ['host:docs.example.com'] },
     ]
-    const m = matchProject(projects, ['repo:/Users/me/code/waypoint', 'token:foo'])
+    const m = matchProject(projects, ['repo:/Users/me/code/savespace', 'token:foo'])
     expect(m.projectId).toBe('a')
     expect(m.confidence).toBeCloseTo(5 / 6)
     expect(matchProject(projects, ['token:nothing']).projectId).toBeNull()

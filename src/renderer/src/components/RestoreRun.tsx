@@ -30,7 +30,7 @@ export function RestoreRun({
 }) {
   const [report, setReport] = useState<RestoreReport | null>(null)
   useEffect(() => {
-    const off = window.waypoint.on('restore:progress', (r) => {
+    const off = window.savespace.on('restore:progress', (r) => {
       if (r.runId === runId) setReport(r)
     })
     void api('restore:report', { runId }).then((r) => r && setReport(r))

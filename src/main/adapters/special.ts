@@ -58,7 +58,7 @@ export const arrangeAdapter: AppAdapter = {
   },
 }
 
-/** Git state is context only: Waypoint never runs a git command that changes anything. */
+/** Git state is context only: Savespace never runs a git command that changes anything. */
 export const gitAdapter: AppAdapter = {
   id: 'git',
   displayName: 'Git',
@@ -76,11 +76,11 @@ export const gitAdapter: AppAdapter = {
       ? {
           action: 'info',
           description: `${ref.repoPath.split('/').pop()} was on ${ref.branch} with ${ref.dirtyFiles} uncommitted file${ref.dirtyFiles === 1 ? '' : 's'}`,
-          reason: 'For context only. Waypoint never changes branches.',
+          reason: 'For context only. Savespace never changes branches.',
         }
       : { action: 'info', description: '' },
   restore: async (refs) =>
     refs.map((r) =>
-      result(r, 'git', 'skipped', 'For context only. Waypoint never changes branches.'),
+      result(r, 'git', 'skipped', 'For context only. Savespace never changes branches.'),
     ),
 }

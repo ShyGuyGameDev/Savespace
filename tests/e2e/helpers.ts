@@ -6,11 +6,11 @@ import { join, resolve } from 'node:path'
 export async function launchApp(
   extraEnv: Record<string, string> = {},
 ): Promise<{ app: ElectronApplication; dataDir: string }> {
-  const dataDir = mkdtempSync(join(tmpdir(), 'waypoint-e2e-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'savespace-e2e-'))
   const env = {
     ...process.env,
-    WAYPOINT_USER_DATA: dataDir,
-    WAYPOINT_E2E: '1',
+    SAVESPACE_USER_DATA: dataDir,
+    SAVESPACE_E2E: '1',
     ...extraEnv,
   } as Record<string, string>
   delete env['ELECTRON_RUN_AS_NODE']

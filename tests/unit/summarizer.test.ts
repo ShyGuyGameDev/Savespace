@@ -16,7 +16,7 @@ import { guardedFetch } from '../../src/main/net'
 const input: SummaryInput = {
   project: {
     id: 'p',
-    name: 'Waypoint',
+    name: 'Savespace',
     color: '',
     signals: [],
     createdAt: 0,
@@ -26,20 +26,20 @@ const input: SummaryInput = {
   },
   trigger: 'idle',
   at: Date.UTC(2026, 10, 10, 17, 30),
-  recentTitles: ['engine.ts — waypoint'],
+  recentTitles: ['engine.ts — savespace'],
   refs: [
     {
       kind: 'file',
       app: 'com.microsoft.VSCode',
-      path: '/Users/me/waypoint/src/restore/engine.ts',
+      path: '/Users/me/savespace/src/restore/engine.ts',
       line: 120,
       focused: true,
     },
-    { kind: 'file', app: 'com.microsoft.VSCode', path: '/Users/me/waypoint/src/adapters/index.ts' },
+    { kind: 'file', app: 'com.microsoft.VSCode', path: '/Users/me/savespace/src/adapters/index.ts' },
     {
       kind: 'gitState',
       app: 'git',
-      repoPath: '/Users/me/waypoint',
+      repoPath: '/Users/me/savespace',
       branch: 'feature/restore',
       dirtyFiles: 3,
     },
@@ -65,9 +65,9 @@ describe('template summary', () => {
   it('writes 2-3 sentences of state only', () => {
     const t = templateSummary(input)
     expect(t).toMatch(
-      /^You were working on Waypoint, editing engine\.ts around line 120 with index\.ts also open\./,
+      /^You were working on Savespace, editing engine\.ts around line 120 with index\.ts also open\./,
     )
-    expect(t).toMatch(/feature\/restore branch of waypoint had 3 uncommitted changes/)
+    expect(t).toMatch(/feature\/restore branch of savespace had 3 uncommitted changes/)
     expect(t.match(/[.!?](\s|$)/g)!.length).toBeLessThanOrEqual(3)
     expect(t).not.toMatch(/next step|should|decid|question/i)
   })
@@ -94,7 +94,7 @@ describe('ollama summarizer', () => {
             message: {
               role: 'assistant',
               content:
-                '"You were refining the restore engine in Waypoint, with engine.ts open at line 120. The feature/restore branch had three uncommitted files and the WP-9 ticket was open. Next, you should add tests."',
+                '"You were refining the restore engine in Savespace, with engine.ts open at line 120. The feature/restore branch had three uncommitted files and the WP-9 ticket was open. Next, you should add tests."',
             },
           },
         }
@@ -104,7 +104,7 @@ describe('ollama summarizer', () => {
     const r = await s.summarize(input)
     expect(r.source).toBe('ollama')
     expect(r.text).toBe(
-      'You were refining the restore engine in Waypoint, with engine.ts open at line 120. The feature/restore branch had three uncommitted files and the WP-9 ticket was open.',
+      'You were refining the restore engine in Savespace, with engine.ts open at line 120. The feature/restore branch had three uncommitted files and the WP-9 ticket was open.',
     )
     expect(sent?.stream).toBe(false)
     expect(sent?.model).toBe('llama3.2:3b')
@@ -172,7 +172,7 @@ describe('ollama summarizer', () => {
 
   it('never puts file contents in the fact sheet (paths and titles only)', () => {
     const f = factSheet(input)
-    expect(f).toContain('Project: Waypoint')
+    expect(f).toContain('Project: Savespace')
     expect(f).toContain('Status update')
     expect(f).not.toContain('x@y')
   })

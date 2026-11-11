@@ -58,8 +58,8 @@ export function migrationsDir(): string {
 
 export function appleHelperPath(): string {
   return app.isPackaged
-    ? join(process.resourcesPath, 'apple-ai/waypoint-apple-ai')
-    : join(app.getAppPath(), 'resources/apple-ai/waypoint-apple-ai')
+    ? join(process.resourcesPath, 'apple-ai/savespace-apple-ai')
+    : join(app.getAppPath(), 'resources/apple-ai/savespace-apple-ai')
 }
 
 export function engineBinary(): string {
@@ -84,7 +84,7 @@ export async function createContext(hooks: ContextHooks = {}): Promise<AppContex
   const opened = openDb({ dataDir, migrationsDir: migrationsDir(), hexKey })
   const store = new Store(opened.db)
   store.seedBuiltInExclusions()
-  const exec = new SafeExec(process.env['WAYPOINT_DRY_RUN'] === '1' ? dryRunRunner : undefined, {
+  const exec = new SafeExec(process.env['SAVESPACE_DRY_RUN'] === '1' ? dryRunRunner : undefined, {
     canArrange: () => store.getSettings().arrangeWindows,
   })
   const permissions = new Permissions(exec)

@@ -4,7 +4,7 @@ import { CHANNELS } from '@shared/channels'
 import { IPC_CHANNELS } from '@shared/ipc'
 
 describe('scaffold', () => {
-  it('has a single product name constant', () => expect(APP_NAME).toBe('Waypoint'))
+  it('has a single product name constant', () => expect(APP_NAME).toBe('Savespace'))
   it('preload channel list matches the Zod IPC contract', () => {
     expect([...CHANNELS].sort()).toEqual([...IPC_CHANNELS].sort())
   })

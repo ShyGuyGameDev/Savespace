@@ -62,7 +62,7 @@ describe('store', () => {
 
   it('creates checkpoints with validated resources and lists them newest first', () => {
     ctx = tempDb()
-    const p = ctx.store.createProject('Waypoint', ['repo:/Users/me/waypoint'])
+    const p = ctx.store.createProject('Savespace', ['repo:/Users/me/savespace'])
     ctx.store.createCheckpoint({
       projectId: p.id,
       trigger: 'manual',
@@ -80,7 +80,7 @@ describe('store', () => {
         {
           kind: 'file',
           app: 'com.microsoft.VSCode',
-          path: '/Users/me/waypoint/a.ts',
+          path: '/Users/me/savespace/a.ts',
           line: 3,
           column: 2,
         },

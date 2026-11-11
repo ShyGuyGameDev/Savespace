@@ -3,7 +3,7 @@ import { launchApp, windowByRoute } from './helpers'
 
 test.describe('dashboard', () => {
   test('timeline, detail, preview restore and per-item results', async () => {
-    const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+    const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
     const page = await windowByRoute(app, '/')
     await expect(page.getByRole('navigation', { name: 'Projects and sections' })).toBeVisible()
     await page.getByRole('button', { name: /Atlas API/ }).click()
@@ -38,7 +38,7 @@ test.describe('dashboard', () => {
   })
 
   test('suggestions inbox: confirm with a new name creates the project', async () => {
-    const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+    const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
     const page = await windowByRoute(app, '/')
     await page.getByRole('button', { name: /Suggestions/ }).click()
     await expect(page.getByRole('heading', { name: 'Tax Return 2026' })).toBeVisible()
@@ -52,7 +52,7 @@ test.describe('dashboard', () => {
   })
 
   test('privacy center shows permissions, exclusions and audit log; delete-all requires typing DELETE', async () => {
-    const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+    const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
     const page = await windowByRoute(app, '/')
     await page.getByRole('button', { name: 'Privacy' }).click()
     await expect(page.getByText('Accessibility', { exact: true })).toBeVisible()
@@ -64,13 +64,13 @@ test.describe('dashboard', () => {
     await expect(del).toBeDisabled()
     await page.getByLabel('Type DELETE to confirm').fill('DELETE')
     await del.click()
-    // Settings are wiped too, so Waypoint starts fresh at the welcome screen.
-    await expect(page.getByRole('heading', { name: /Welcome to Waypoint/ })).toBeVisible()
+    // Settings are wiped too, so Savespace starts fresh at the welcome screen.
+    await expect(page.getByRole('heading', { name: /Welcome to Savespace/ })).toBeVisible()
     await app.close()
   })
 
   test('settings: arrange windows is off by default and can be toggled', async () => {
-    const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+    const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
     const page = await windowByRoute(app, '/')
     await page.getByRole('button', { name: 'Settings' }).click()
     const toggle = page.getByRole('switch', { name: 'Arrange windows' })
@@ -91,7 +91,7 @@ test.describe('dashboard', () => {
   })
 
   test('palette: fuzzy search and resume from the keyboard', async () => {
-    const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+    const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
     const palette = await windowByRoute(app, '/palette')
     await palette.evaluate('window.dispatchEvent(new Event("focus"))')
     const input = palette.getByRole('combobox', { name: 'Command palette' })
@@ -105,7 +105,7 @@ test.describe('dashboard', () => {
   })
 
   test('tray popover shows recent projects', async () => {
-    const { app } = await launchApp({ WAYPOINT_E2E_SEED: '1', WAYPOINT_DRY_RUN: '1' })
+    const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
     const pop = await windowByRoute(app, '/popover')
     await expect(pop.getByRole('button', { name: /Checkpoint now/ })).toBeVisible()
     await expect(pop.getByRole('button', { name: 'Resume Atlas API' })).toBeVisible()

@@ -93,7 +93,7 @@ export function parseVsState(
   return { files, active, cursors }
 }
 
-/** Reads a COPY of state.vscdb in Waypoint's temp dir, read-only. The editor's own file is never opened. */
+/** Reads a COPY of state.vscdb in Savespace's temp dir, read-only. The editor's own file is never opened. */
 function readWorkspaceState(dbPath: string, tempDir: string): VsEditorState {
   const dir = join(tempDir, `vscdb-${randomUUID()}`)
   mkdirSync(dir, { recursive: true, mode: 0o700 })

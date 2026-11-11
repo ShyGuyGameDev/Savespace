@@ -32,7 +32,7 @@ const TRIGGER_LABEL: Record<Checkpoint['trigger'], string> = {
   'end-of-day': 'End of day',
   sleep: 'Mac went to sleep',
   lock: 'Screen locked',
-  quit: 'Waypoint quit',
+  quit: 'Savespace quit',
 }
 
 export function ProjectView({ route, navigate }: { route: string; navigate: (r: string) => void }) {
@@ -120,7 +120,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
               title="No checkpoints yet"
               body={
                 <>
-                  Waypoint saves one when you switch projects, step away, or at the end of the day.
+                  Savespace saves one when you switch projects, step away, or at the end of the day.
                   Or press{' '}
                   <Kbd>{formatHotkey(settings.data?.hotkeyCheckpoint ?? 'Alt+Command+S')}</Kbd>{' '}
                   anywhere.

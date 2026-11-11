@@ -4,7 +4,7 @@ import type { AppAdapter, CaptureContext } from './types'
 import { basename, errorReason, result } from './util'
 
 /**
- * Terminals are restored by opening a NEW window at the saved directory. Waypoint never types into a
+ * Terminals are restored by opening a NEW window at the saved directory. Savespace never types into a
  * terminal and never runs a command (no `do script`, no iTerm `write text`).
  */
 const tildeTitle = /(?:^|[\s:—-])((?:~|\/)[^\s—]*)\s*(?:$|[—-])/

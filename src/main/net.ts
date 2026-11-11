@@ -4,7 +4,7 @@ import { ALLOWED_NETWORK_HOSTS } from './windows/security'
  * The only network entry point in the main process. Refuses every host that isn't local Ollama
  * or (when the user enabled a connector) Google's OAuth/API hosts. No telemetry exists.
  */
-/** Loopback ports of Waypoint's own bundled AI engine (set when the engine starts). */
+/** Loopback ports of Savespace's own bundled AI engine (set when the engine starts). */
 const loopbackPorts = new Set<number>()
 export function allowLoopbackPort(port: number): void {
   loopbackPorts.add(port)
@@ -18,7 +18,7 @@ export async function guardedFetch(
   init: RequestInit & { timeoutMs?: number } = {},
 ): Promise<Response> {
   const u = new URL(url)
-  // Loopback is allowed only for the port of Waypoint's own running AI engine.
+  // Loopback is allowed only for the port of Savespace's own running AI engine.
   const isEngine = u.hostname === '127.0.0.1' && loopbackPorts.has(Number(u.port))
   if (!isEngine && !ALLOWED_NETWORK_HOSTS.has(u.host))
     throw new Error(`Network access to ${u.host} is not allowed`)

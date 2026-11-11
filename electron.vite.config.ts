@@ -7,7 +7,7 @@ import { PROD_CSP } from './src/main/windows/csp'
 
 /** Injects the strict CSP meta tag into the production renderer HTML. */
 const cspPlugin = (): Plugin => ({
-  name: 'waypoint-csp',
+  name: 'savespace-csp',
   apply: 'build',
   transformIndexHtml: (html) =>
     html.replace(

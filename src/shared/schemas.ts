@@ -33,7 +33,7 @@ const base = {
   focused: z.boolean().optional(),
 }
 
-/** Every kind of thing Waypoint can remember and reopen. */
+/** Every kind of thing Savespace can remember and reopen. */
 export const ResourceRefSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('app'), ...base }),
   z.object({

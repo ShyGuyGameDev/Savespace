@@ -2,12 +2,12 @@
 
 Audited: 2026-11-10 on macOS 27.0.1 (Apple Silicon, 8 GB). The latest raw results are in [`evidence/safety-audit-results.txt`](evidence/safety-audit-results.txt). Re-run them any time with `npm run audit:safety`, or `npm run audit:safety -- --live` to include the live restore.
 
-## 1. What Waypoint captures (metadata only)
+## 1. What Savespace captures (metadata only)
 
 | Source                                 | What is stored                                                                                          | How it's read                                                                                          |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Visible apps and windows               | App name, bundle id, window title, window position/size, the document path of the window (`AXDocument`) | System Events (Accessibility)                                                                          |
-| VS Code / Insiders / Cursor / Windsurf | Workspace folder, open file paths, cursor line/column                                                   | A **copy** of the editor's `state.vscdb` in Waypoint's own temp folder, opened read-only, then deleted |
+| VS Code / Insiders / Cursor / Windsurf | Workspace folder, open file paths, cursor line/column                                                   | A **copy** of the editor's `state.vscdb` in Savespace's own temp folder, opened read-only, then deleted |
 | Chrome / Brave / Edge / Vivaldi / Arc  | Tab URL + title of **normal** windows (incognito skipped by window `mode`)                              | Apple Events, read-only template                                                                       |
 | Safari                                 | Tab URL + title, **only if you turn it on** (Safari can't report private windows)                       | Apple Events                                                                                           |
 | Firefox                                | Tab URL + title from non-private windows                                                                | Firefox's own session file, read-only                                                                  |
@@ -22,7 +22,7 @@ Audited: 2026-11-10 on macOS 27.0.1 (Apple Silicon, 8 GB). The latest raw result
 
 Every captured URL is sanitized: URLs with embedded credentials are dropped, and secret-looking query parameters (`token`, `code`, `state`, `key`, `sig`, `session`, …) and OAuth fragments are removed.
 
-## 2. What Waypoint never captures
+## 2. What Savespace never captures
 
 - Screenshots, screen recordings, or pixels. **No Screen Recording permission is requested.** The static test fails the build if `desktopCapturer`, `getDisplayMedia`, `CGWindowListCreateImage` or `screencapture` appears in the source.
 - The contents of documents, emails, notes, messages, terminals (no `history`/`contents`), or web pages.
@@ -33,18 +33,18 @@ Every captured URL is sanitized: URLs with embedded credentials are dropped, and
 
 ## 3. Where data lives
 
-- **Database:** `~/Library/Application Support/Waypoint/waypoint.db` (SQLite with WAL), encrypted at rest with SQLite3MultipleCiphers (ChaCha20-Poly1305). Verified by test: the file has no plaintext and no SQLite header, and can't be opened without the key.
+- **Database:** `~/Library/Application Support/Savespace/savespace.db` (SQLite with WAL), encrypted at rest with SQLite3MultipleCiphers (ChaCha20-Poly1305). Verified by test: the file has no plaintext and no SQLite header, and can't be opened without the key.
 - **Key:** a random 32-byte key, stored only as `db.key.enc`, which is encrypted by Electron `safeStorage`. Its master key lives in the **macOS Keychain**. Files are created with mode `0600`, folders with `0700`.
 - **Connector tokens:** `connectors/<service>.token.enc`, also encrypted by `safeStorage`.
 - **Rolling activity buffer:** raw samples are kept for 14 days by default (configurable 1–365) and pruned automatically.
-- **Exports:** `exports/waypoint-export-<time>.json` inside the same folder. Waypoint never writes anywhere else.
+- **Exports:** `exports/savespace-export-<time>.json` inside the same folder. Savespace never writes anywhere else.
 - **Apple on-device AI (preferred):** a 67 KB helper, compiled from `native/apple-ai/main.swift`, calls Apple's **on-device** `SystemLanguageModel` only. A unit test fails if the source mentions `PrivateCloudComputeLanguageModel` or any networking API. It receives the same metadata-only fact sheet as the downloaded model and needs no download. SafeExec allows exactly `status` or `summarize <instructions> <prompt>`.
-- **Built-in AI engine (fallback):** Waypoint bundles the Ollama engine (v0.40.12, MIT, checksum-pinned). It is started by Waypoint with a **clean environment**:
-  - It runs only on `127.0.0.1` at a random port, and only while Waypoint runs.
-  - `OLLAMA_NO_CLOUD=1` is set, and its `HOME` and models folder are inside Waypoint's data folder (`ai/`), so it never touches `~/.ollama`.
-  - **All of its outbound traffic is forced through Waypoint's egress gate** (`HTTPS_PROXY` → `summarizer/egress.ts`). The gate allows connections only while Waypoint is downloading a model, only to `registry.ollama.ai` and Ollama's R2 blob host, on port 443.
+- **Built-in AI engine (fallback):** Savespace bundles the Ollama engine (v0.40.12, MIT, checksum-pinned). It is started by Savespace with a **clean environment**:
+  - It runs only on `127.0.0.1` at a random port, and only while Savespace runs.
+  - `OLLAMA_NO_CLOUD=1` is set, and its `HOME` and models folder are inside Savespace's data folder (`ai/`), so it never touches `~/.ollama`.
+  - **All of its outbound traffic is forced through Savespace's egress gate** (`HTTPS_PROXY` → `summarizer/egress.ts`). The gate allows connections only while Savespace is downloading a model, only to `registry.ollama.ai` and Ollama's R2 blob host, on port 443.
   - Everything else is refused and written to the audit log. That includes the engine's built-in periodic "model recommendations" fetch, which still runs with `OLLAMA_NO_CLOUD=1`; I verified this in its startup log.
-- **Network:** apart from that one-time model download, none. Waypoint's own code may only call its engine's loopback port and, if you connect them, Google's OAuth/API hosts over HTTPS. There is no telemetry. The renderer can't make any request (CSP `connect-src 'self'` plus `webRequest` blocking).
+- **Network:** apart from that one-time model download, none. Savespace's own code may only call its engine's loopback port and, if you connect them, Google's OAuth/API hosts over HTTPS. There is no telemetry. The renderer can't make any request (CSP `connect-src 'self'` plus `webRequest` blocking).
 - **Audit log:** every checkpoint, restore (with per-item results), export, delete-all, permission request, connector change, and settings change is logged and viewable in Privacy → Activity log.
 
 ## 4. How the open-only rule is enforced
@@ -71,11 +71,11 @@ Every captured URL is sanitized: URLs with embedded credentials are dropped, and
 
 ### Findings and caveats (honest list)
 
-1. **Finder writes `.DS_Store`.** When Finder opens a folder window, Finder itself may create a `.DS_Store` (view settings) in that folder or its parent. The live test recorded one at `home/code/.DS_Store`. That's macOS behaviour for the allowed "open a folder" action; Waypoint wrote nothing. No existing file was modified. The test allows exactly this file name, and only in live mode.
-2. **Apps change their own state when you use them.** Opening a folder in an editor can trigger that editor's own background work (for example, VS Code's git extension refreshing `.git/index`). Waypoint only asks the editor to open; it never runs a command that writes. The live fixture test deliberately restores only TextEdit, Preview and Finder, so its verdict measures Waypoint and not a third-party extension.
+1. **Finder writes `.DS_Store`.** When Finder opens a folder window, Finder itself may create a `.DS_Store` (view settings) in that folder or its parent. The live test recorded one at `home/code/.DS_Store`. That's macOS behaviour for the allowed "open a folder" action; Savespace wrote nothing. No existing file was modified. The test allows exactly this file name, and only in live mode.
+2. **Apps change their own state when you use them.** Opening a folder in an editor can trigger that editor's own background work (for example, VS Code's git extension refreshing `.git/index`). Savespace only asks the editor to open; it never runs a command that writes. The live fixture test deliberately restores only TextEdit, Preview and Finder, so its verdict measures Savespace and not a third-party extension.
 3. **macOS can add extended attributes** (such as "last opened" dates) to files you open. These are metadata, not content, and don't change the SHA-256 or mtime, which is what the test checks.
 4. **Safari private windows can't be detected through scripting.** That's why Safari tab capture is off by default.
-5. **Local web pages and the AI engine:** Ollama always accepts browser requests from `localhost` origins, and that can't be turned off. Waypoint picks a random port each launch, and the engine holds no personal data (it only sees the metadata fact sheet for each summary). Still, a malicious page on your own Mac that scanned ports could use it to run the model.
+5. **Local web pages and the AI engine:** Ollama always accepts browser requests from `localhost` origins, and that can't be turned off. Savespace picks a random port each launch, and the engine holds no personal data (it only sees the metadata fact sheet for each summary). Still, a malicious page on your own Mac that scanned ports could use it to run the model.
 6. **Small-model accuracy.** Choosing the fallback, I compared models on the same checkpoint (2026-11-11). `gemma3:1b` and `llama3.2:1b` invented facts (a wrong line number, "several related tickets", "no issues"). `llama3.2:3b` was accurate in 3 of 3 runs, so it is the fallback. Apple's on-device model initially read the git repository as a file name; labelling the fact sheet's git section "Git repository (not a file)" and telling it to name only listed files fixed this (3 of 3 identical, accurate runs).
-7. **Labelled summaries:** with the older instructions, the 3B model once called uncommitted changes "staged". Every summary is labelled with its source (Apple on-device AI, Downloaded model, or Simple summary) and only describes metadata Waypoint gave it.
+7. **Labelled summaries:** with the older instructions, the 3B model once called uncommitted changes "staged". Every summary is labelled with its source (Apple on-device AI, Downloaded model, or Simple summary) and only describes metadata Savespace gave it.
 8. **Unsigned builds:** macOS ties Accessibility/Automation grants to the code signature, so an unsigned rebuild may need permissions granted again.

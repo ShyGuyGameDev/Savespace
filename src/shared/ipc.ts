@@ -239,7 +239,7 @@ type _EventsMatch = [IpcEvent] extends [(typeof EVENTS)[number]]
   : never
 export const _eventsMatch: _EventsMatch = true
 
-export interface WaypointBridge {
+export interface SavespaceBridge {
   invoke<C extends IpcChannel>(channel: C, input?: IpcInput<C>): Promise<IpcOutput<C>>
   on<E extends IpcEvent>(
     event: E,

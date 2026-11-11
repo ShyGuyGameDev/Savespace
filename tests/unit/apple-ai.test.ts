@@ -41,7 +41,7 @@ function fakeApple(replies: { status?: object; summarize?: object | 'fail' }) {
     }
   }
   const exec = new SafeExec(runner, {
-    resolve: (id) => (id === 'apple-ai' ? '/x/apple-ai/waypoint-apple-ai' : null),
+    resolve: (id) => (id === 'apple-ai' ? '/x/apple-ai/savespace-apple-ai' : null),
   })
   return { apple: new AppleSummarizer(exec, () => true), calls, exec }
 }

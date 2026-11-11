@@ -11,7 +11,7 @@ import {
 
 /**
  * The build-breaking safety linter for every AppleScript/JXA template.
- * If you add a template and this fails, the template is doing something Waypoint must never do.
+ * If you add a template and this fails, the template is doing something Savespace must never do.
  */
 const JS_KEYWORDS = new Set([
   'function',

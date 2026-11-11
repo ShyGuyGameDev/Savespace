@@ -96,7 +96,7 @@ describe('restore engine', () => {
       ['opened', ''],
       ['failed', 'kaboom'],
       ['already-open', ''],
-      ['skipped', 'For context only. Waypoint never changes branches.'],
+      ['skipped', 'For context only. Savespace never changes branches.'],
       ['skipped', 'Arrange windows is off (Settings → Restore)'],
     ])
     expect(report.finishedAt).toBeDefined()

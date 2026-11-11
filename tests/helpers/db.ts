@@ -11,7 +11,7 @@ export const testKeys: KeyProvider = {
 }
 
 export function tempDb(): { dir: string; opened: OpenedDb; store: Store; cleanup: () => void } {
-  const dir = mkdtempSync(join(tmpdir(), 'waypoint-db-'))
+  const dir = mkdtempSync(join(tmpdir(), 'savespace-db-'))
   const opened = openDb({
     dataDir: dir,
     migrationsDir: resolve(__dirname, '../../src/main/db/migrations'),

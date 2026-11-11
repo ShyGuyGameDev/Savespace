@@ -54,7 +54,7 @@ describe('open-only enforcement (static)', () => {
     expect(svc).not.toMatch(/\.\.\.process\.env/)
   })
 
-  it('no file writes outside Waypoint-owned paths (writeFile only in db, privacy export, connectors, editor-state temp copies)', () => {
+  it('no file writes outside Savespace-owned paths (writeFile only in db, privacy export, connectors, editor-state temp copies)', () => {
     const allowed = [
       'src/main/db/client.ts',
       'src/main/privacy/export.ts',

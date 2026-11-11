@@ -1,5 +1,5 @@
 /**
- * Script registry. EVERY AppleScript/JXA that Waypoint can run lives here; SafeExec refuses
+ * Script registry. EVERY AppleScript/JXA that Savespace can run lives here; SafeExec refuses
  * anything else. Templates never interpolate values: parameters arrive via `run(argv)` as
  * separate process arguments, so there is nothing to escape and nothing to inject.
  *

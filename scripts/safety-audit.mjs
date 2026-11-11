@@ -48,7 +48,7 @@ const sections = [
     ['tests/integration/restore-fixtures.test.ts'],
   ],
 ]
-let out = `Waypoint privacy & safety audit\nRun at: ${new Date().toISOString()}\nmacOS: ${execFileSync('/usr/bin/sw_vers', ['-productVersion'], { encoding: 'utf8' }).trim()}\nLive restore: ${live}\n\n`
+let out = `Savespace privacy & safety audit\nRun at: ${new Date().toISOString()}\nmacOS: ${execFileSync('/usr/bin/sw_vers', ['-productVersion'], { encoding: 'utf8' }).trim()}\nLive restore: ${live}\n\n`
 let failed = false
 for (const [title, files] of sections) {
   const r = run(files)
@@ -60,7 +60,7 @@ for (const [title, files] of sections) {
   out += `== ${title}\n${summary}\n\n`
 }
 if (live) {
-  const r = run(['tests/integration/restore-fixtures.test.ts'], { WAYPOINT_LIVE_RESTORE: '1' })
+  const r = run(['tests/integration/restore-fixtures.test.ts'], { SAVESPACE_LIVE_RESTORE: '1' })
   const summary = r
     .split('\n')
     .filter((l) => /Tests\s+\d|\[fixture-hash\]|AUDIT: FAILED/.test(l))

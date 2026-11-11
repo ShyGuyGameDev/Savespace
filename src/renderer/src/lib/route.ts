@@ -6,7 +6,7 @@ export function useHashRoute(): [string, (r: string) => void] {
   useEffect(() => {
     const onHash = () => setRoute(read())
     window.addEventListener('hashchange', onHash)
-    const off = window.waypoint.on('nav:route', ({ route }) => {
+    const off = window.savespace.on('nav:route', ({ route }) => {
       if (route !== read()) window.location.hash = route
     })
     return () => {

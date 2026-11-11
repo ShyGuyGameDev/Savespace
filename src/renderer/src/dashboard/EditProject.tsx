@@ -86,7 +86,7 @@ export function EditProjectDialog({
         <Dialog.Content className="fixed left-1/2 top-[12%] z-50 flex max-h-[80vh] w-[480px] max-w-[92vw] -translate-x-1/2 flex-col rounded-xl border border-border bg-background p-5 shadow-2xl">
           <Dialog.Title className="text-[15px] font-semibold">Edit project</Dialog.Title>
           <Dialog.Description className="mb-4 text-[12px] text-muted-foreground">
-            Waypoint uses “What belongs to this project” to recognise when you’re working on it and
+            Savespace uses “What belongs to this project” to recognise when you’re working on it and
             what to save.
           </Dialog.Description>
 

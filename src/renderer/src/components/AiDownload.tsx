@@ -10,7 +10,7 @@ export function useAiStatus() {
   const [live, setLive] = useState<AiDownload | null>(null)
   useEffect(
     () =>
-      window.waypoint.on('ai:progress', (d) => {
+      window.savespace.on('ai:progress', (d) => {
         setLive(d)
         if (!d.active) void q.refetch()
       }),

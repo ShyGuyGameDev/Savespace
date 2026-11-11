@@ -127,10 +127,10 @@ export function createHandlers(
     'ai:download': (input) => {
       store.audit(
         'summarize',
-        `Downloading local AI model ${input?.model ?? ctx.ai.selectedModel()} into Waypoint's data folder`,
+        `Downloading local AI model ${input?.model ?? ctx.ai.selectedModel()} into Savespace's data folder`,
       )
       // UI tests never trigger real multi-GB downloads.
-      if (!process.env['WAYPOINT_E2E'] || process.env['WAYPOINT_E2E_AI'])
+      if (!process.env['SAVESPACE_E2E'] || process.env['SAVESPACE_E2E_AI'])
         void ctx.ai.ensureModel(input?.model ?? ctx.ai.selectedModel()).catch(() => {})
       return ok
     },

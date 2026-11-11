@@ -80,7 +80,7 @@ export function Privacy() {
             </div>
           </Card>
 
-          <SectionTitle>What Waypoint keeps</SectionTitle>
+          <SectionTitle>What Savespace keeps</SectionTitle>
           <div className="grid grid-cols-2 gap-3 text-[12px]">
             <Card className="p-3">
               <p className="mb-1 font-medium text-[13px]">Captured (metadata)</p>
@@ -249,7 +249,7 @@ function DeleteAllDialog({
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/30" />
         <Dialog.Content className="fixed left-1/2 top-1/3 z-50 w-[420px] -translate-x-1/2 rounded-xl border border-border bg-background p-5 shadow-2xl">
           <Dialog.Title className="text-[15px] font-semibold">
-            Delete all Waypoint data?
+            Delete all Savespace data?
           </Dialog.Title>
           <Dialog.Description className="mt-1 text-[13px] text-muted-foreground">
             This permanently removes every project, checkpoint, suggestion, activity sample, setting

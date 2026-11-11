@@ -1,4 +1,4 @@
-# Design research: Waypoint UI/UX
+# Design research: Savespace UI/UX
 
 Research date: 2026-11-10. Sources are linked inline. Where a source is a third-party write-up rather than the vendor's own docs, that is noted, and those claims are treated as a reasonable guide rather than gospel.
 
@@ -11,7 +11,7 @@ Research date: 2026-11-10. Sources are linked inline. Where a source is a third-
 - Raycast's team built custom UI because AppKit defaults aren't keyboard-first ([console.dev Q&A](https://console.dev/qa/raycast-petr-nikolaev/)).
 - Recurring visual traits (third-party analyses, [blakecrosley.com/guides/design/raycast](https://blakecrosley.com/guides/design/raycast)): compact uniform rows, a high-contrast selected row, hierarchy that favours recognition.
 
-**Applied:** The Waypoint palette is a frameless floating window: one search field, a uniform row list, and a footer with `↵ Resume`, `⌘↵ Preview`, `⌘K Checkpoint now`, `esc`. The first row is pre-selected and arrow keys move the selection. It opens on a global hotkey, filters synchronously in memory (Fuse.js) so no network or DB round-trip happens on keystroke, and hides on blur.
+**Applied:** The Savespace palette is a frameless floating window: one search field, a uniform row list, and a footer with `↵ Resume`, `⌘↵ Preview`, `⌘K Checkpoint now`, `esc`. The first row is pre-selected and arrow keys move the selection. It opens on a global hotkey, filters synchronously in memory (Fuse.js) so no network or DB round-trip happens on keystroke, and hides on blur.
 
 ### Linear (dashboard)
 
@@ -65,7 +65,7 @@ Research date: 2026-11-10. Sources are linked inline. Where a source is a third-
 
 **Applied:** Onboarding is a five-step stepper:
 
-1. Welcome: what Waypoint does, and the open-only promise in one sentence.
+1. Welcome: what Savespace does, and the open-only promise in one sentence.
 2. Privacy: what's captured (metadata) vs. never captured (contents, screenshots, keystrokes).
 3. Accessibility: why ("to read window titles and, only if you turn it on, arrange windows"), what works without it, then the button "Open System Settings". Status is polled every 1.5s while the window is focused.
 4. Automation: why ("to ask Chrome/Safari/Mail which tabs/drafts are open, read-only"). This is requested per app lazily the first time an adapter needs it, with an "Ask now for apps I use" button that triggers a harmless read-only probe for each installed scriptable app.
@@ -82,7 +82,7 @@ Every step has "Skip for now", and the Privacy center later shows each permissio
 | Light/dark         | Tailwind v4 CSS variables with shadcn tokens. `prefers-color-scheme` drives `.dark`, and `nativeTheme.themeSource = 'system'`.                                                                                                                                                             |
 | Reduced motion     | Framer Motion `MotionConfig reducedMotion="user"`, plus CSS `@media (prefers-reduced-motion)` disables transitions.                                                                                                                                                                        |
 | Accessibility      | Radix primitives (via shadcn) give ARIA roles. The palette uses the `combobox`/`listbox` pattern with `aria-activedescendant`. Live region announcements for restore progress. All icons have `aria-label` or are `aria-hidden`. Contrast targets WCAG AA.                                 |
-| Empty states       | Each list has a purposeful empty state with one action: "No projects yet — Waypoint is watching for patterns. Check Suggestions in a few minutes." / "No checkpoints — press ⌥⌘S to save one now."                                                                                         |
+| Empty states       | Each list has a purposeful empty state with one action: "No projects yet — Savespace is watching for patterns. Check Suggestions in a few minutes." / "No checkpoints — press ⌥⌘S to save one now."                                                                                         |
 | Restore UX         | **Preview restore** lists every item grouped by app with its intended action (open / focus existing / skip because excluded). On confirm, a live per-item result list shows ✓ Opened, ↺ Already open, – Skipped, ✕ Failed, each with a reason. A Cancel button stops before the next item. |
 | Typography/density | System font stack (`-apple-system, BlinkMacSystemFont`), 13px base in dense lists (macOS-native density) and 14px in detail.                                                                                                                                                               |
 | Motion             | 120–180ms ease-out for the popover/palette fade+scale (0.98→1). There are no bouncy springs on data.                                                                                                                                                                                       |

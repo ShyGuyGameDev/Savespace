@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Compiles the tiny Apple on-device AI bridge (native/apple-ai/main.swift) into
- * resources/apple-ai/waypoint-apple-ai. Needs Apple's Swift compiler (Xcode Command Line Tools)
+ * resources/apple-ai/savespace-apple-ai. Needs Apple's Swift compiler (Xcode Command Line Tools)
  * and a macOS 26+ SDK. If either is missing, the app still works: it just skips Apple's model
  * and uses the downloaded fallback model instead.
  */
@@ -11,7 +11,7 @@ import { join } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
 const src = join(root, 'native/apple-ai/main.swift')
-const out = join(root, 'resources/apple-ai/waypoint-apple-ai')
+const out = join(root, 'resources/apple-ai/savespace-apple-ai')
 
 if (process.platform !== 'darwin') process.exit(0)
 if (existsSync(out) && statSync(out).mtimeMs >= statSync(src).mtimeMs) {
@@ -25,9 +25,9 @@ try {
     ['swiftc', '-O', '-parse-as-library', '-target', 'arm64-apple-macos15.0', src, '-o', out],
     { stdio: 'inherit' },
   )
-  console.log('[apple-ai] built resources/apple-ai/waypoint-apple-ai')
+  console.log('[apple-ai] built resources/apple-ai/savespace-apple-ai')
 } catch {
   console.warn(
-    '[apple-ai] could not build the Apple on-device AI helper (needs Xcode Command Line Tools with a macOS 26+ SDK). Waypoint will use the downloaded model instead.',
+    '[apple-ai] could not build the Apple on-device AI helper (needs Xcode Command Line Tools with a macOS 26+ SDK). Savespace will use the downloaded model instead.',
   )
 }

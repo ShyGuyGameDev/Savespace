@@ -19,7 +19,7 @@ export const APPLE_REASON_TEXT: Record<string, string> = {
 }
 
 /**
- * Apple's on-device foundation model (Apple Intelligence), reached through Waypoint's tiny helper.
+ * Apple's on-device foundation model (Apple Intelligence), reached through Savespace's tiny helper.
  * Runs entirely on this Mac; nothing to download. Only the on-device SystemLanguageModel is used.
  */
 export class AppleSummarizer {

@@ -5,8 +5,8 @@ import type { AiEngine } from './engine'
 import { recommendModel, type OllamaSummarizer } from './ollama'
 
 /**
- * Makes local AI "just work": starts Waypoint's bundled engine and downloads the recommended
- * model into Waypoint's own data folder automatically (once), with progress. Users can turn
+ * Makes local AI "just work": starts Savespace's bundled engine and downloads the recommended
+ * model into Savespace's own data folder automatically (once), with progress. Users can turn
  * AI off in Settings, which stops the engine and any download.
  */
 export class AiManager {

@@ -69,7 +69,7 @@ const DriveFileSchema = z.object({
   mimeType: z.string().optional(),
 })
 
-/** Read-only Google connectors. All opt-in; Waypoint works fully without them. */
+/** Read-only Google connectors. All opt-in; Savespace works fully without them. */
 export class GoogleConnectors {
   constructor(
     private readonly dataDir: string,
@@ -104,7 +104,7 @@ export class GoogleConnectors {
       configured: !!c,
       connected: existsSync(this.tokenPath(id)),
       enabled: this.enabled(id),
-      missing: c ? undefined : 'Needs WAYPOINT_GOOGLE_CLIENT_ID (see MISSING_CREDENTIALS.md)',
+      missing: c ? undefined : 'Needs SAVESPACE_GOOGLE_CLIENT_ID (see MISSING_CREDENTIALS.md)',
     }))
   }
 
@@ -112,7 +112,7 @@ export class GoogleConnectors {
     const c = this.client()
     if (!c)
       throw new Error(
-        'Google sign-in isn’t set up yet. Add WAYPOINT_GOOGLE_CLIENT_ID (see MISSING_CREDENTIALS.md).',
+        'Google sign-in isn’t set up yet. Add SAVESPACE_GOOGLE_CLIENT_ID (see MISSING_CREDENTIALS.md).',
       )
     await this.save(id, await authorize(c, CONNECTORS[id].scope, this.openBrowser))
   }

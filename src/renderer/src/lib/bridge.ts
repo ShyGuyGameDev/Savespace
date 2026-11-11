@@ -9,7 +9,7 @@ import {
 import type { IpcChannel, IpcEvent, IpcInput, IpcOutput } from '@shared/ipc'
 
 export const api = <C extends IpcChannel>(channel: C, input?: IpcInput<C>): Promise<IpcOutput<C>> =>
-  window.waypoint.invoke(channel, input)
+  window.savespace.invoke(channel, input)
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5_000, refetchOnWindowFocus: true, retry: 1 } },
@@ -39,9 +39,9 @@ export function useIpcMutation<C extends IpcChannel>(channel: C, invalidate: Ipc
 
 export function useIpcEvent<E extends IpcEvent>(
   event: E,
-  cb: (p: Parameters<Parameters<typeof window.waypoint.on<E>>[1]>[0]) => void,
+  cb: (p: Parameters<Parameters<typeof window.savespace.on<E>>[1]>[0]) => void,
 ) {
-  useEffect(() => window.waypoint.on(event, cb), [event, cb])
+  useEffect(() => window.savespace.on(event, cb), [event, cb])
 }
 
 /** Refetch everything when main says data changed. */
@@ -49,7 +49,7 @@ export function useLiveData() {
   const qc = useQueryClient()
   useEffect(
     () =>
-      window.waypoint.on('data:changed', ({ scope }) => {
+      window.savespace.on('data:changed', ({ scope }) => {
         if (scope === 'all') return void qc.invalidateQueries()
         const map: Record<string, IpcChannel[]> = {
           projects: ['projects:list', 'app:currentContext'],

@@ -38,7 +38,7 @@ export function ShortcutsSheet({
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background p-5 shadow-2xl">
           <Dialog.Title className="mb-3 text-[15px] font-semibold">Keyboard shortcuts</Dialog.Title>
           <Dialog.Description className="sr-only">
-            All keyboard shortcuts in Waypoint
+            All keyboard shortcuts in Savespace
           </Dialog.Description>
           <dl className="space-y-1.5">
             {rows.map(([k, v]) => (

@@ -16,7 +16,7 @@ export function Dashboard({ route, navigate }: { route: string; navigate: Naviga
   const pendingG = useRef(false)
 
   useEffect(() => {
-    const off = window.waypoint.on('checkpoint:created', ({ projectName }) =>
+    const off = window.savespace.on('checkpoint:created', ({ projectName }) =>
       toast(projectName ? `Checkpoint saved for ${projectName}` : 'Checkpoint saved'),
     )
     return off

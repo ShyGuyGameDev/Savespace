@@ -116,7 +116,7 @@ export function SettingsView() {
             </Row>
             <Row
               label="Capture Safari tabs"
-              hint="Off by default: Safari can’t tell Waypoint which windows are private. Waypoint skips windows whose titles look private, but can’t guarantee it."
+              hint="Off by default: Safari can’t tell Savespace which windows are private. Savespace skips windows whose titles look private, but can’t guarantee it."
             >
               <Switch
                 label="Capture Safari tabs"
@@ -130,7 +130,7 @@ export function SettingsView() {
           <Card className="divide-y divide-border">
             <Row
               label="Arrange windows"
-              hint="Also move and resize windows back to where they were (uses Accessibility). Off: Waypoint never moves windows."
+              hint="Also move and resize windows back to where they were (uses Accessibility). Off: Savespace never moves windows."
             >
               <Switch
                 label="Arrange windows"
@@ -300,7 +300,7 @@ export function SettingsView() {
           <Card className="divide-y divide-border">
             {(connectors.data ?? []).length === 0 && (
               <p className="p-3 text-[12px] text-muted-foreground">
-                Waypoint works fully without any connectors.
+                Savespace works fully without any connectors.
               </p>
             )}
             {connectors.data?.map((c) => (

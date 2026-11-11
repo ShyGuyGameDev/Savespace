@@ -1,8 +1,8 @@
-import type { WaypointBridge } from '../shared/ipc'
+import type { SavespaceBridge } from '../shared/ipc'
 
 declare global {
   interface Window {
-    waypoint: WaypointBridge
+    savespace: SavespaceBridge
   }
 }
 export {}

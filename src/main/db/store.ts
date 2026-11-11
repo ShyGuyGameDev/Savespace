@@ -548,7 +548,7 @@ export class Store {
   exportAll(): Record<string, unknown> {
     return {
       exportedAt: new Date().toISOString(),
-      format: 'waypoint-export/1',
+      format: 'savespace-export/1',
       settings: this.getSettings(),
       projects: this.listProjects(true),
       checkpoints: this.listCheckpoints({ limit: 1_000_000 }),
@@ -576,7 +576,7 @@ export class Store {
       tx.delete(t.auditLog).run()
     })
     this.seedBuiltInExclusions()
-    this.audit('delete-all', 'All Waypoint data was deleted by the user')
+    this.audit('delete-all', 'All Savespace data was deleted by the user')
   }
 }
 

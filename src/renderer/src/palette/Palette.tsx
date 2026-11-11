@@ -49,7 +49,7 @@ export function Palette() {
       void ctx.refetch()
       setTimeout(() => input.current?.focus(), 0)
     }
-    const off = window.waypoint.on('nav:route', reset)
+    const off = window.savespace.on('nav:route', reset)
     window.addEventListener('focus', reset)
     return () => {
       off()
@@ -237,7 +237,7 @@ export function Palette() {
       >
         <span className="min-w-0 flex-1 truncate">
           {status ??
-            (ctx.data?.projectName ? `You seem to be in ${ctx.data.projectName}` : 'Waypoint')}
+            (ctx.data?.projectName ? `You seem to be in ${ctx.data.projectName}` : 'Savespace')}
         </span>
         <span className="flex items-center gap-1">
           <Kbd>↵</Kbd> {results[sel]?.alt ? 'Resume' : 'Run'}

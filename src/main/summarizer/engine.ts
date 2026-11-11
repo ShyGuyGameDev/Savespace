@@ -19,8 +19,8 @@ function freePort(): Promise<number> {
 }
 
 /**
- * Waypoint's own copy of the Ollama engine, bundled in the app. It runs only while Waypoint runs,
- * listens only on 127.0.0.1 (random port), keeps models in Waypoint's data folder, and has
+ * Savespace's own copy of the Ollama engine, bundled in the app. It runs only while Savespace runs,
+ * listens only on 127.0.0.1 (random port), keeps models in Savespace's data folder, and has
  * Ollama's cloud features disabled. Users never install anything separately.
  */
 export class AiEngine {

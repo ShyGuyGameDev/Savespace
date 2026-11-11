@@ -1,5 +1,5 @@
 /**
- * Talks to the REAL Apple on-device model through Waypoint's helper (no download).
+ * Talks to the REAL Apple on-device model through Savespace's helper (no download).
  * Skips cleanly if the helper isn't built or this Mac doesn't have Apple Intelligence.
  */
 import { existsSync } from 'node:fs'
@@ -9,7 +9,7 @@ import { registerAppleAiHelper } from '../../src/main/safe-exec/allowlist'
 import { SafeExec } from '../../src/main/safe-exec'
 import { AppleSummarizer } from '../../src/main/summarizer/apple'
 
-const HELPER = resolve(__dirname, '../../resources/apple-ai/waypoint-apple-ai')
+const HELPER = resolve(__dirname, '../../resources/apple-ai/savespace-apple-ai')
 
 describe.skipIf(!existsSync(HELPER))('Apple on-device AI (real)', () => {
   it('reports availability and, if available, writes an accurate recap', async () => {

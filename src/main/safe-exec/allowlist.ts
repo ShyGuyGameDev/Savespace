@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 
 /**
- * Every external binary Waypoint may execute, with absolute candidate paths (never a PATH/shell
+ * Every external binary Savespace may execute, with absolute candidate paths (never a PATH/shell
  * lookup) and a validator that rejects any argument vector outside the allowed shape.
  */
 export interface BinarySpec {
@@ -228,7 +228,7 @@ export const BINARIES: Record<string, BinarySpec> = {
 }
 
 /**
- * Waypoint's own Apple on-device AI bridge (resources/apple-ai/waypoint-apple-ai). Its path is only
+ * Savespace's own Apple on-device AI bridge (resources/apple-ai/savespace-apple-ai). Its path is only
  * known at runtime (inside the app bundle), so it's registered once at startup.
  * Allowed shapes: `status` | `summarize <instructions> <prompt>`.
  */
@@ -292,7 +292,7 @@ BINARIES['apple-ai'] = {
 }
 
 export function registerAppleAiHelper(path: string): void {
-  if (!path.endsWith('/apple-ai/waypoint-apple-ai')) throw new Error('unexpected helper path')
+  if (!path.endsWith('/apple-ai/savespace-apple-ai')) throw new Error('unexpected helper path')
   BINARIES['apple-ai']!.candidates = [path]
 }
 

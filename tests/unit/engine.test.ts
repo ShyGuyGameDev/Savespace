@@ -86,11 +86,11 @@ function makeEngine() {
           windows: [{ title: 'Vault', position: [0, 0], size: [10, 10], document: null }],
         },
         {
-          name: 'Waypoint',
-          bundleId: 'app.waypoint.desktop',
+          name: 'Savespace',
+          bundleId: 'app.savespace.desktop',
           pid: 4,
           frontmost: false,
-          windows: [{ title: 'Waypoint', position: [0, 0], size: [10, 10], document: null }],
+          windows: [{ title: 'Savespace', position: [0, 0], size: [10, 10], document: null }],
         },
       ],
     }),
@@ -103,7 +103,7 @@ describe('capture engine', () => {
     const snap = await makeEngine().snapshot()
     const apps = new Set(snap.refs.map((r) => r.app))
     expect(apps.has('com.1password.1password')).toBe(false)
-    expect(apps.has('app.waypoint.desktop')).toBe(false)
+    expect(apps.has('app.savespace.desktop')).toBe(false)
     expect(snap.refs).toContainEqual(
       expect.objectContaining({ kind: 'file', path: '/Users/me/code/wp/src/a.ts', focused: true }),
     )

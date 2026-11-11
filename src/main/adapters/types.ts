@@ -25,7 +25,7 @@ export interface CaptureContext {
   isRunning(bundleId: string): boolean
   /** Report an Automation outcome (keeps the Privacy center accurate). */
   noteAutomation(bundleId: string, state: 'granted' | 'denied'): void
-  /** Where adapters may write temporary copies (inside Waypoint's own data dir). */
+  /** Where adapters may write temporary copies (inside Savespace's own data dir). */
   tempDir: string
   homeDir: string
 }

@@ -85,7 +85,7 @@ describe('Google connectors', () => {
       ['drive', false, false],
       ['calendar', false, false],
     ])
-    expect(st[0]!.missing).toMatch(/WAYPOINT_GOOGLE_CLIENT_ID/)
+    expect(st[0]!.missing).toMatch(/SAVESPACE_GOOGLE_CLIENT_ID/)
     await expect(g.connect('gmail')).rejects.toThrow(/MISSING_CREDENTIALS/)
     expect(await g.gmailDrafts()).toEqual([])
   })

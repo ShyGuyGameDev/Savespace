@@ -1,5 +1,5 @@
-appId: app.waypoint.desktop
-productName: Waypoint
+appId: app.savespace.desktop
+productName: Savespace
 copyright: Copyright © 2026
 directories:
   output: release
@@ -39,9 +39,9 @@ mac:
   identity: null
   notarize: false
   extendInfo:
-    NSAppleEventsUsageDescription: Waypoint asks your apps which files, tabs and drafts are open (read-only) so it can reopen them later. It never changes anything in them.
+    NSAppleEventsUsageDescription: Savespace asks your apps which files, tabs and drafts are open (read-only) so it can reopen them later. It never changes anything in them.
     LSApplicationCategoryType: public.app-category.productivity
 dmg:
-  title: Waypoint ${version}
-  # Fixed name so the website can always link to releases/latest/download/Waypoint-arm64.dmg
-  artifactName: Waypoint-${arch}.dmg
+  title: Savespace ${version}
+  # Fixed name so the website can always link to releases/latest/download/Savespace-arm64.dmg
+  artifactName: Savespace-${arch}.dmg

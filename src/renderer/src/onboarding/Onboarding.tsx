@@ -176,7 +176,7 @@ function AccessibilityStep() {
   const { data, refetch } = usePolledPermissions()
   const granted = data?.accessibility === 'granted'
   return (
-    <Hero icon={<Accessibility />} title="Let Waypoint see window titles">
+    <Hero icon={<Accessibility />} title="Let Savespace see window titles">
       <p>
         macOS calls this <strong className="text-foreground">Accessibility</strong>. {APP_NAME} uses
         it only to read the <em>titles and positions</em> of your windows, so it knows which

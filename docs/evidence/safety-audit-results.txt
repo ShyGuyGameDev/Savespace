@@ -1,5 +1,5 @@
-Waypoint privacy & safety audit
-Run at: 2026-11-11T22:22:31.235Z
+Savespace privacy & safety audit
+Run at: 2026-11-11T23:15:27.166Z
 macOS: 27.0.1
 Live restore: false
 

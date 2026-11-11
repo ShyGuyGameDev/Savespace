@@ -8,7 +8,7 @@ const TRIGGER_TEXT: Record<string, string> = {
   'end-of-day': 'Saved at the end of your day',
   sleep: 'Saved when your Mac went to sleep',
   lock: 'Saved when you locked your screen',
-  quit: 'Saved when Waypoint quit',
+  quit: 'Saved when Savespace quit',
 }
 
 const base = (p: string) => p.replace(/\/$/, '').split('/').pop() ?? p

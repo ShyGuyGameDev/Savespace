@@ -58,7 +58,7 @@ export async function authorize(
         const ok = u.searchParams.get('state') === state && u.searchParams.get('code')
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
         res.end(
-          `<!doctype html><meta charset="utf-8"><title>Waypoint</title><body style="font:15px -apple-system;padding:40px">${ok ? 'Connected. You can close this tab and return to Waypoint.' : 'Sign-in was cancelled or failed. You can close this tab.'}</body>`,
+          `<!doctype html><meta charset="utf-8"><title>Savespace</title><body style="font:15px -apple-system;padding:40px">${ok ? 'Connected. You can close this tab and return to Savespace.' : 'Sign-in was cancelled or failed. You can close this tab.'}</body>`,
         )
         if (ok)
           resolve({

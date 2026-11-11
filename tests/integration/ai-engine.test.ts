@@ -1,8 +1,8 @@
 /**
- * Starts the REAL bundled AI engine (resources/ollama/ollama) the way Waypoint does and checks that
+ * Starts the REAL bundled AI engine (resources/ollama/ollama) the way Savespace does and checks that
  * it runs only on loopback with cloud features off and keeps all of its files inside the given folder.
  * Skipped if the engine hasn't been fetched (run `npm run fetch:ollama`).
- * Set WAYPOINT_LIVE_AI=1 to also download the default model and generate a real summary (~2 GB).
+ * Set SAVESPACE_LIVE_AI=1 to also download the default model and generate a real summary (~2 GB).
  */
 import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -15,8 +15,8 @@ import { OllamaSummarizer } from '../../src/main/summarizer/ollama'
 import { DEFAULT_SETTINGS } from '@shared/constants'
 
 const BIN = resolve(__dirname, '../../resources/ollama/ollama')
-const LIVE = process.env['WAYPOINT_LIVE_AI'] === '1'
-const dir = mkdtempSync(join(tmpdir(), 'waypoint-ai-'))
+const LIVE = process.env['SAVESPACE_LIVE_AI'] === '1'
+const dir = mkdtempSync(join(tmpdir(), 'savespace-ai-'))
 const blocked: string[] = []
 const engine = new AiEngine(
   BIN,
@@ -49,7 +49,7 @@ describe.skipIf(!existsSync(BIN))('bundled AI engine', () => {
     expect(tags.models).toEqual([])
   }, 60_000)
 
-  it('cannot reach the internet unless Waypoint is downloading a model (egress gate)', async () => {
+  it('cannot reach the internet unless Savespace is downloading a model (egress gate)', async () => {
     const ollama = new OllamaSummarizer(
       () => 'all-minilm',
       () => true,

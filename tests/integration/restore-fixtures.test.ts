@@ -5,7 +5,7 @@
  *
  * Default mode: git/ps/lsof run for real (read-only queries); `open`, editor CLIs and osascript are
  * recorded instead of executed (CI-safe, no windows appear).
- * Live mode (WAYPOINT_LIVE_RESTORE=1): `open` really runs, opening the fixture text file in TextEdit,
+ * Live mode (SAVESPACE_LIVE_RESTORE=1): `open` really runs, opening the fixture text file in TextEdit,
  * the PDF in Preview and the folder in Finder, and hashes are checked after the apps have them open.
  */
 import Database from 'better-sqlite3'
@@ -36,7 +36,7 @@ import { SCRIPTS } from '../../src/main/safe-exec/scripts/registry'
 import { TemplateSummarizer } from '../../src/main/summarizer/template'
 import { tempDb } from '../helpers/db'
 
-const LIVE = process.env['WAYPOINT_LIVE_RESTORE'] === '1'
+const LIVE = process.env['SAVESPACE_LIVE_RESTORE'] === '1'
 let root: string
 let home: string
 let project: string
@@ -69,13 +69,13 @@ trailer<</Root 1 0 R>>
 `
 
 beforeAll(() => {
-  root = mkdtempSync(join(tmpdir(), 'waypoint-fixtures-'))
+  root = mkdtempSync(join(tmpdir(), 'savespace-fixtures-'))
   home = join(root, 'home')
   project = join(root, 'home/code/fixture-project')
   mkdirSync(join(project, 'src'), { recursive: true })
   writeFileSync(
     join(project, 'notes.txt'),
-    'Fixture notes. Waypoint must never change this file.\n',
+    'Fixture notes. Savespace must never change this file.\n',
   )
   writeFileSync(join(project, 'README.md'), '# Fixture project\n')
   writeFileSync(join(project, 'src/app.ts'), 'export const answer = 42\n'.repeat(50))
@@ -260,7 +260,7 @@ describe('open-only guarantee (fixture hashes)', () => {
     }
     const exec = new SafeExec(runner)
     const registry = new AdapterRegistry(allAdapters())
-    const tmp = join(root, 'waypoint-data/tmp')
+    const tmp = join(root, 'savespace-data/tmp')
     mkdirSync(tmp, { recursive: true })
     const engine = new CaptureEngine({
       exec,
@@ -325,18 +325,18 @@ describe('open-only guarantee (fixture hashes)', () => {
     expect(report.results.filter((r) => r.status === 'failed')).toEqual([])
     if (LIVE) await new Promise((r) => setTimeout(r, 3000)) // let the apps actually open the files
 
-    // Nothing created, nothing deleted, nothing changed (Waypoint's own temp dir excluded).
+    // Nothing created, nothing deleted, nothing changed (Savespace's own temp dir excluded).
     const after = fingerprint(root)
     const strip = (m: Fingerprint) =>
-      new Map([...m].filter(([p]) => !p.startsWith(join(root, 'waypoint-data'))))
+      new Map([...m].filter(([p]) => !p.startsWith(join(root, 'savespace-data'))))
     const created = [...strip(after).keys()].filter((p) => !before.has(p))
     // Finder itself writes view settings (.DS_Store) when a folder window opens; that is macOS
-    // behaviour for the allowed "open a folder" action, not a Waypoint write. Anything else fails.
+    // behaviour for the allowed "open a folder" action, not a Savespace write. Anything else fails.
     expect(created.filter((p) => !(LIVE && p.endsWith('/.DS_Store')))).toEqual([])
     expect([...strip(before).keys()].filter((p) => !after.has(p))).toEqual([]) // nothing deleted
     for (const [p, fp] of strip(before)) expect(strip(after).get(p), p).toEqual(fp) // nothing modified
 
-    // Every process Waypoint ran was an allowlisted, open-only/read-only command.
+    // Every process Savespace ran was an allowlisted, open-only/read-only command.
     for (const [file, ...args] of executed) {
       const bin = file!.split('/').pop()
       expect(['osascript', 'open', 'git', 'code', 'ps', 'lsof', 'xed']).toContain(bin)
@@ -352,7 +352,7 @@ describe('open-only guarantee (fixture hashes)', () => {
     expect(opens).toEqual(
       expect.arrayContaining([['-b', 'com.apple.TextEdit', '--', join(project, 'notes.txt')]]),
     )
-    // Waypoint's temp copies of editor state are cleaned up.
+    // Savespace's temp copies of editor state are cleaned up.
     expect(readdirSync(tmp)).toEqual([])
     console.log(
       `[fixture-hash] ${before.size} files verified unchanged; new files by other apps: ${JSON.stringify(created.map((p) => p.replace(root, '')))}; ${executed.length} commands; live=${LIVE}; statuses=${JSON.stringify(report.results.map((r) => r.status))}`,

@@ -80,7 +80,7 @@ export function openDb({
   migrationsDir,
   keys,
   hexKey: given,
-  fileName = 'waypoint.db',
+  fileName = 'savespace.db',
 }: OpenDbOptions): OpenedDb {
   if (!keys && !given) throw new Error('openDb needs a key')
   if (keys && !keys.isAvailable())

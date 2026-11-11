@@ -19,7 +19,7 @@ export function AppsView() {
       <header className="drag flex h-12 shrink-0 items-center gap-3 border-b border-border px-6">
         <h1 className="text-[14px] font-semibold">Apps</h1>
         <p className="text-[12px] text-muted-foreground">
-          How deeply Waypoint understands each app. Anything not listed is opened or focused (launch
+          How deeply Savespace understands each app. Anything not listed is opened or focused (launch
           only).
         </p>
       </header>

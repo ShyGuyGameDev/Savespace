@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 /**
  * Chromium browsers keep each signed-in account in its own *profile* (Default, Profile 1, …).
- * The scripting dictionary doesn't say which profile a window belongs to, so Waypoint reads two
+ * The scripting dictionary doesn't say which profile a window belongs to, so Savespace reads two
  * of the browser's own files, read-only:
  *  - `Local State` (JSON): profile folder → display name
  *  - `<profile>/Sessions/Session_*` (binary "SNSS"): the URLs of that profile's open tabs

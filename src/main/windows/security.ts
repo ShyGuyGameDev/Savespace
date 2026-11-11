@@ -2,7 +2,7 @@ import { app, session, type WebContents } from 'electron'
 
 /** Hosts the main process may contact over the network. The renderer may contact none. */
 export const ALLOWED_NETWORK_HOSTS = new Set([
-  // Waypoint's bundled AI engine is allowed separately, on its own random loopback port (net.ts).
+  // Savespace's bundled AI engine is allowed separately, on its own random loopback port (net.ts).
   // Opt-in Google connectors only (read-only scopes):
   'oauth2.googleapis.com',
   'accounts.google.com',

@@ -3,7 +3,7 @@ import type { PermissionsStatus } from '@shared/schemas'
 import { SafeExecError, type SafeExec } from '../safe-exec'
 
 /**
- * Waypoint asks for exactly two kinds of permission, and never Screen Recording:
+ * Savespace asks for exactly two kinds of permission, and never Screen Recording:
  *  - Accessibility: read window titles/frames via System Events (and, only if enabled, arrange windows).
  *  - Automation: per-app consent to ask scriptable apps for read-only metadata.
  */
@@ -150,7 +150,7 @@ export class Permissions {
         this.automation[bundleId] = 'denied'
         return done(
           'denied',
-          `You chose Don’t Allow. To change it: System Settings → Privacy & Security → Automation → Waypoint → turn on ${target.name}.`,
+          `You chose Don’t Allow. To change it: System Settings → Privacy & Security → Automation → Savespace → turn on ${target.name}.`,
         )
       }
       if (e instanceof SafeExecError && e.code === 'timeout') {

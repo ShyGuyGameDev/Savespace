@@ -81,7 +81,7 @@ export function Suggestions() {
           <EmptyState
             icon={<Inbox />}
             title="All caught up"
-            body="Waypoint looks for folders, repos, sites and meetings you keep coming back to, and suggests them here as projects. Keep working; new ideas show up within a day or two."
+            body="Savespace looks for folders, repos, sites and meetings you keep coming back to, and suggests them here as projects. Keep working; new ideas show up within a day or two."
           />
         ) : (
           <ul

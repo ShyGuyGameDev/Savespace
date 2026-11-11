@@ -22,4 +22,4 @@ const bridge = {
   },
 }
 
-contextBridge.exposeInMainWorld('waypoint', Object.freeze(bridge))
+contextBridge.exposeInMainWorld('savespace', Object.freeze(bridge))

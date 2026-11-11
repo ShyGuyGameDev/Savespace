@@ -43,7 +43,7 @@ export interface Snapshot {
   system: SystemSnapshot
 }
 
-const SELF_BUNDLE_IDS = new Set(['app.waypoint.desktop', 'com.github.Electron'])
+const SELF_BUNDLE_IDS = new Set(['app.savespace.desktop', 'com.github.Electron'])
 
 /** Builds metadata-only snapshots. Never reads document contents, never takes screenshots. */
 export class CaptureEngine {

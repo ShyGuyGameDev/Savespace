@@ -28,10 +28,10 @@ const devUrl = process.env['ELECTRON_RENDERER_URL']
 let tray: Tray | null = null
 let ctx: AppContext | null = null
 
-// Everything Waypoint creates (DB, WAL/SHM, exports, tokens) is owner-only.
+// Everything Savespace creates (DB, WAL/SHM, exports, tokens) is owner-only.
 process.umask(0o077)
 // Tests (and power users) can isolate all data in another directory.
-if (process.env['WAYPOINT_USER_DATA']) app.setPath('userData', process.env['WAYPOINT_USER_DATA'])
+if (process.env['SAVESPACE_USER_DATA']) app.setPath('userData', process.env['SAVESPACE_USER_DATA'])
 if (!app.requestSingleInstanceLock()) app.quit()
 app.setName(APP_NAME)
 
@@ -78,16 +78,16 @@ app.whenReady().then(async () => {
     app.quit()
     return
   }
-  if (process.env['WAYPOINT_E2E_SEED'] === '1') seedDemo(ctx)
+  if (process.env['SAVESPACE_E2E_SEED'] === '1') seedDemo(ctx)
   registerIpc(
     createHandlers(ctx, {
       onSettingsChanged: (keys) => {
         if (keys.some((k) => k.startsWith('hotkey'))) registerHotkeys()
-        if (keys.includes('captureIntervalSec') && !process.env['WAYPOINT_E2E'])
+        if (keys.includes('captureIntervalSec') && !process.env['SAVESPACE_E2E'])
           ctx?.scheduler.start()
         const aiKeys =
           keys.includes('aiEnabled') || keys.includes('ollamaModel') || keys.includes('aiProvider')
-        if (aiKeys && (!process.env['WAYPOINT_E2E'] || process.env['WAYPOINT_E2E_AI']))
+        if (aiKeys && (!process.env['SAVESPACE_E2E'] || process.env['SAVESPACE_E2E_AI']))
           void ctx?.ai.sync()
         if (keys.includes('launchAtLogin'))
           app.setLoginItemSettings({ openAtLogin: !!ctx?.store.getSettings().launchAtLogin })
@@ -101,9 +101,9 @@ app.whenReady().then(async () => {
   const settings = ctx.store.getSettings()
   registerHotkeys()
   wirePowerEvents()
-  if (!process.env['WAYPOINT_E2E']) ctx.scheduler.start()
+  if (!process.env['SAVESPACE_E2E']) ctx.scheduler.start()
   // Local AI is part of the app: start the bundled engine and fetch the model automatically.
-  if (!process.env['WAYPOINT_E2E'] || process.env['WAYPOINT_E2E_AI']) void ctx.ai.sync()
+  if (!process.env['SAVESPACE_E2E'] || process.env['SAVESPACE_E2E_AI']) void ctx.ai.sync()
   showDashboard(settings.onboardingComplete ? '/' : '/onboarding')
   if (process.platform === 'darwin') app.dock?.show()
 })
@@ -146,7 +146,7 @@ function wirePowerEvents(): void {
 
 let quitting = false
 app.on('before-quit', (e) => {
-  if (quitting || !ctx || process.env['WAYPOINT_E2E']) return
+  if (quitting || !ctx || process.env['SAVESPACE_E2E']) return
   quitting = true
   e.preventDefault()
   const done = () => app.quit()

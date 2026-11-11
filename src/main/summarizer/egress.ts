@@ -2,9 +2,9 @@ import { createServer, type Server } from 'node:http'
 import { connect, type Socket } from 'node:net'
 
 /**
- * Egress gate for Waypoint's bundled AI engine. The engine is started with HTTPS_PROXY pointing
+ * Egress gate for Savespace's bundled AI engine. The engine is started with HTTPS_PROXY pointing
  * here, so EVERY outbound connection it makes passes through this gate:
- *  - allowed only while Waypoint is downloading a model (the user's selected model), and
+ *  - allowed only while Savespace is downloading a model (the user's selected model), and
  *  - only to Ollama's model registry and its blob storage, port 443 (TLS end-to-end; not inspected).
  * Everything else (update checks, "model recommendations", cloud features, anything new) is refused
  * and reported, so the engine can never phone home on its own.

@@ -119,7 +119,7 @@ export function Sidebar({ route, navigate }: { route: string; navigate: (r: stri
         />
 
         <p className="px-2 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Waypoint
+          Savespace
         </p>
         <NavItem
           active={route.startsWith('/suggestions')}

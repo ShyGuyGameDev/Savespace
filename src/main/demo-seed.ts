@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { AppContext } from './app-context'
 
-/** Seeds realistic demo data for end-to-end tests and screenshots (only with WAYPOINT_E2E_SEED=1). */
+/** Seeds realistic demo data for end-to-end tests and screenshots (only with SAVESPACE_E2E_SEED=1). */
 export function seedDemo(ctx: AppContext): void {
   const { store } = ctx
   if (store.listProjects(true).length) return

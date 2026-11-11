@@ -19,8 +19,8 @@ function readDotEnv(path: string): Record<string, string> {
 
 /**
  * Google OAuth "Desktop app" client, from (first match wins):
- *  1. <Waypoint data dir>/google-oauth-client.json  {"client_id": "...", "client_secret": "..."}  (packaged app)
- *  2. environment / .env: WAYPOINT_GOOGLE_CLIENT_ID, WAYPOINT_GOOGLE_CLIENT_SECRET              (development)
+ *  1. <Savespace data dir>/google-oauth-client.json  {"client_id": "...", "client_secret": "..."}  (packaged app)
+ *  2. environment / .env: SAVESPACE_GOOGLE_CLIENT_ID, SAVESPACE_GOOGLE_CLIENT_SECRET              (development)
  */
 export function loadGoogleClient(dataDir: string): OAuthClient | null {
   try {
@@ -38,8 +38,8 @@ export function loadGoogleClient(dataDir: string): OAuthClient | null {
     ...(app.isPackaged ? {} : readDotEnv(join(app.getAppPath(), '.env'))),
     ...process.env,
   }
-  const id = env['WAYPOINT_GOOGLE_CLIENT_ID']
+  const id = env['SAVESPACE_GOOGLE_CLIENT_ID']
   return id
-    ? { clientId: id, clientSecret: env['WAYPOINT_GOOGLE_CLIENT_SECRET'] || undefined }
+    ? { clientId: id, clientSecret: env['SAVESPACE_GOOGLE_CLIENT_SECRET'] || undefined }
     : null
 }

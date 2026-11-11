@@ -2,14 +2,14 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 
 /**
- * The only long-running child process Waypoint may start: its own bundled AI engine
+ * The only long-running child process Savespace may start: its own bundled AI engine
  * (`<app>/Contents/Resources/ollama/ollama serve`). Exact binary path, exact args, clean env
  * (no inherited proxies/tokens), no shell, bound to loopback only, cloud features off.
  */
 export interface EngineSpawnOptions {
   binary: string
   port: number
-  /** Waypoint's egress gate; ALL of the engine's outbound traffic goes through it. */
+  /** Savespace's egress gate; ALL of the engine's outbound traffic goes through it. */
   proxyPort: number
   modelsDir: string
   home: string

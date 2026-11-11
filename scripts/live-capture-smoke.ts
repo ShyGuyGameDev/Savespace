@@ -6,7 +6,7 @@ import { DEFAULT_SETTINGS } from '../src/shared/constants'
 import { cursorAdapter, vscodeAdapter } from '../src/main/adapters/vscode-family'
 import { SafeExec } from '../src/main/safe-exec'
 
-const tempDir = join(tmpdir(), 'waypoint-smoke-tmp')
+const tempDir = join(tmpdir(), 'savespace-smoke-tmp')
 mkdirSync(tempDir, { recursive: true })
 const ctx = {
   exec: new SafeExec(),

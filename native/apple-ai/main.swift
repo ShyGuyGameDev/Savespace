@@ -1,7 +1,7 @@
-// waypoint-apple-ai: tiny bridge to Apple's ON-DEVICE foundation model (Apple Intelligence).
+// savespace-apple-ai: tiny bridge to Apple's ON-DEVICE foundation model (Apple Intelligence).
 // Only SystemLanguageModel (runs on this Mac) is used, never PrivateCloudComputeLanguageModel.
-//   waypoint-apple-ai status                            -> {"available":true} | {"available":false,"reason":"..."}
-//   waypoint-apple-ai summarize <instructions> <prompt> -> {"text":"..."} | {"error":"..."}
+//   savespace-apple-ai status                            -> {"available":true} | {"available":false,"reason":"..."}
+//   savespace-apple-ai summarize <instructions> <prompt> -> {"text":"..."} | {"error":"..."}
 import Foundation
 import FoundationModels
 
@@ -46,7 +46,7 @@ func run(_ args: [String]) async -> [String: Any] {
 }
 
 @main
-struct WaypointAppleAI {
+struct SavespaceAppleAI {
   static func main() async {
     let args = CommandLine.arguments
     guard args.count >= 2 else { emit(["error": "usage: status | summarize <instructions> <prompt>"]) }

@@ -110,7 +110,7 @@ export class OllamaSummarizer implements Summarizer {
     private readonly getModel: () => string,
     private readonly enabled: () => boolean,
     private readonly fetcher: Fetcher = guardedFetch,
-    /** Base URL of Waypoint's bundled engine (random loopback port). */
+    /** Base URL of Savespace's bundled engine (random loopback port). */
     private readonly baseUrl: () => string = () => 'http://127.0.0.1:0',
     private readonly engineBundled: () => boolean = () => true,
   ) {}
@@ -145,7 +145,7 @@ export class OllamaSummarizer implements Summarizer {
     }
   }
 
-  /** Downloads a model into Waypoint's own models folder, streaming progress. */
+  /** Downloads a model into Savespace's own models folder, streaming progress. */
   async pull(
     model: string,
     onProgress: (p: { status: string; completed?: number; total?: number }) => void,

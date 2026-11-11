@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Fetches the pinned Ollama engine into resources/ollama (bundled into the app).
- * Verifies the release's SHA-256 and keeps only what Waypoint needs on Apple Silicon:
+ * Verifies the release's SHA-256 and keeps only what Savespace needs on Apple Silicon:
  * `ollama`, `llama-server` and the license files (~93 MB instead of 580 MB).
  * No-op if the right version is already present.
  */
@@ -49,7 +49,7 @@ const buf = Buffer.from(await res.arrayBuffer())
 const got = createHash('sha256').update(buf).digest('hex')
 if (got !== SHA256) throw new Error(`checksum mismatch: expected ${SHA256}, got ${got}`)
 
-const work = mkdtempSync(join(tmpdir(), 'waypoint-ollama-'))
+const work = mkdtempSync(join(tmpdir(), 'savespace-ollama-'))
 try {
   writeFileSync(join(work, 'ollama-darwin.tgz'), buf)
   mkdirSync(join(work, 'x'))

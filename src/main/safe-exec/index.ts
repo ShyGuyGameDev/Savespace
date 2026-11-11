@@ -5,7 +5,7 @@ import { BINARIES, resolveBinary } from './allowlist'
 import { SCRIPTS, type ScriptId } from './scripts/registry'
 
 /**
- * SafeExec: the ONLY place in Waypoint that starts processes.
+ * SafeExec: the ONLY place in Savespace that starts processes.
  *  - Uses execFile with argument arrays (no shell, no string concatenation).
  *  - Only binaries in the allowlist, each with an argument validator.
  *  - osascript only runs registered templates; parameters go through argv, never into the source.
@@ -57,7 +57,7 @@ export const defaultRunner: Runner = (file, args, timeoutMs) =>
   })
 
 /**
- * Dry-run runner for end-to-end tests (WAYPOINT_DRY_RUN=1): validation, allowlists and records all
+ * Dry-run runner for end-to-end tests (SAVESPACE_DRY_RUN=1): validation, allowlists and records all
  * still apply, but nothing is executed and no app is opened.
  */
 export const dryRunRunner: Runner = async (file) => {

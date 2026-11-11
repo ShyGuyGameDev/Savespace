@@ -1,6 +1,6 @@
 /** Rename the product here and only here. */
-export const APP_NAME = 'Waypoint'
-export const APP_ID = 'app.waypoint.desktop'
+export const APP_NAME = 'Savespace'
+export const APP_ID = 'app.savespace.desktop'
 
 export const DEFAULT_HOTKEYS = {
   palette: 'Alt+Command+Space',

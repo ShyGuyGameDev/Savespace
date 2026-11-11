@@ -2,12 +2,12 @@
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const userData = process.env['WAYPOINT_TEST_USERDATA'] ?? join(tmpdir(), 'waypoint-test-userdata')
+const userData = process.env['SAVESPACE_TEST_USERDATA'] ?? join(tmpdir(), 'savespace-test-userdata')
 
 export const app = {
   getPath: (_name: string) => userData,
   getVersion: () => '0.0.0-test',
-  getName: () => 'Waypoint',
+  getName: () => 'Savespace',
   isPackaged: false,
   on: () => app,
 }
