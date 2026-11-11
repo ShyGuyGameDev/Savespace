@@ -21,7 +21,6 @@ tests/.tmp/
 # env & secrets
 .env
 .env.*
-!.env.example
 *.pem
 *.p12
 *.key.enc
