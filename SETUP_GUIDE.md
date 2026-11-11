@@ -152,32 +152,28 @@ You can see these screens again later: **Settings → Show the welcome & permiss
 
 ---
 
-## Step 8. Local AI (built in, nothing to install)
+## Step 8. Local AI (built in, usually nothing to wait for)
 
-**What it's for:** a 2–3 sentence "What you were doing" recap written by a small AI model that runs **entirely on your Mac**.
+**What it's for:** a 2–3 sentence "What you were doing" recap written by AI that runs **entirely on your Mac**.
 
-Waypoint ships with its own copy of the open-source **Ollama** engine (MIT licence). You don't install anything. The first time Waypoint runs, it downloads the AI model that suits your Mac **once**, into its own folder:
+Waypoint picks the best option automatically:
 
-| Your Mac's memory | Model Waypoint picks | One-time download |
-| ----------------- | -------------------- | ----------------- |
-| 8 GB              | `llama3.2:3b`        | ~2 GB             |
-| 16 GB             | `gemma4:e2b`         | ~4.6 GB           |
-| 24–32 GB          | `gemma4:e4b`         | ~6.6 GB           |
-| more than 32 GB   | `gemma4:12b`         | ~9.5 GB           |
+1. **Apple's on-device AI (Apple Intelligence).** This is used first, whenever your Mac has it: macOS 26 or later, Apple silicon, Apple Intelligence turned on. It's already part of macOS, so **nothing downloads and there's no wait**.
+2. **Small built-in model.** On Macs without Apple Intelligence, Waypoint quietly downloads a small model (`llama3.2:3b`, about 2 GB, one time) in the background using its built-in engine. Until it's ready you get simple summaries, so nothing is blocked.
 
-1. On the welcome screen's **Local summaries, built in** step, the download **starts by itself** and shows a progress bar. You can click **Continue**; it keeps going in the background.
-2. To check on it later: **Settings → Local AI**. When it's done you'll see **Running** and **Model ready**. Click **Test** to try it.
+✅ **Worked if:** **Settings → Local AI → Now using:** shows **Apple on-device AI** (or **Downloaded model** once the download finishes). New checkpoints show the matching badge next to "What you were doing". Click **Test** to try it.
 
-✅ **Worked if:** new checkpoints show a **Local AI** badge next to "What you were doing". Until the model is ready, you get a simple summary instead.
+- **To use Apple's AI if it says "Apple Intelligence is off":** open **System Settings → Apple Intelligence & Siri** and turn it on. Waypoint switches over automatically.
+- **"macOS is still downloading Apple's model":** macOS fetches it on its own. Waypoint uses it as soon as it's ready.
+- **AI source** (Settings → Local AI): **Automatic** (recommended), **Apple on-device AI only**, or **Downloaded model only**. You can also pick a larger downloaded model there; it downloads automatically.
+- **Don't want AI at all?** Turn off **Use local AI for summaries**.
+- **Privacy:**
+  - Apple's model is used only in its **on-device** form. Waypoint never uses Apple's Private Cloud Compute.
+  - The downloaded model runs only on `127.0.0.1` while Waypoint runs, and **can't reach the internet except to download the model you chose**. Every other attempt is blocked and logged in **Privacy → Activity log**.
+  - Both are stored and used inside `~/Library/Application Support/Waypoint/ai`.
 
-- **Change the model:** pick another one in **Settings → Local AI → Model**. It downloads automatically.
-- **Don't want it (or you're on a metered connection)?** Turn off **Use local AI for summaries**. This stops the engine and any download.
-- **Where it lives:** `~/Library/Application Support/Waypoint/ai` (when running with `npm start`: `…/Application Support/Electron/ai`). Deleting that folder removes the model; Waypoint downloads it again next time if AI is on.
-- **Privacy:** the engine listens only on your Mac (127.0.0.1, a random port), runs only while Waypoint runs, has Ollama's cloud features switched off, and **can't connect to the internet at all except to download the model you chose**. Every other attempt is blocked and noted in **Privacy → Activity log**.
-
-❗ **Download stuck or says an error:** check your internet connection, then **Settings → Local AI → Download** (or **Try again** on the welcome step).
-❗ **"Not included in this build":** the engine is fetched when you run `npm install`/`npm start`/`npm run dist`. Run `npm run fetch:ollama` and start Waypoint again.
-❗ **Already use Ollama separately?** That's fine. Waypoint never touches your own Ollama install or its models.
+❗ **"Apple on-device AI: Not included in this build":** the small Apple helper is compiled during `npm install`/`npm start`/`npm run dist` and needs the Xcode Command Line Tools from Step 2. Run `npm run build:apple-ai`, then start Waypoint again.
+❗ **Download stuck or errored:** check your internet connection, then **Settings → Local AI → Download**.
 
 ---
 

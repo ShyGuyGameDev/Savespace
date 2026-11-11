@@ -177,10 +177,11 @@ export const CheckpointSchema = z.object({
   createdAt: z.number(),
   trigger: CheckpointTriggerSchema,
   summary: z.string(),
-  summarySource: z.enum(['ollama', 'template']),
+  summarySource: z.enum(['apple', 'ollama', 'template']),
   resources: z.array(ResourceRefSchema),
 })
 export type Checkpoint = z.infer<typeof CheckpointSchema>
+export type SummarySource = Checkpoint['summarySource']
 
 export const SuggestionSchema = z.object({
   id: z.string(),
@@ -247,6 +248,10 @@ export const AiStatusSchema = z.object({
   ramGb: z.number(),
   modelAvailable: z.boolean(),
   download: AiDownloadSchema.nullable(),
+  /** Apple's on-device model (Apple Intelligence). */
+  apple: z.object({ available: z.boolean(), reason: z.string().optional() }),
+  /** Which source new summaries will use right now. */
+  activeSource: z.enum(['apple', 'ollama', 'template']),
 })
 export type AiStatus = z.infer<typeof AiStatusSchema>
 

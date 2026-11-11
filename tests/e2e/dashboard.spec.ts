@@ -82,6 +82,11 @@ test.describe('dashboard', () => {
       'false',
     )
     await page.screenshot({ path: 'test-results/settings.png', fullPage: true })
+    const source = page.getByLabel('AI source')
+    await source.scrollIntoViewIfNeeded()
+    await expect(source).toHaveValue('auto')
+    await expect(page.getByText('Now using:')).toBeVisible()
+    await page.screenshot({ path: 'test-results/settings-ai.png' })
     await app.close()
   })
 

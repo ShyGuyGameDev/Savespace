@@ -22,6 +22,9 @@ import type { Summarizer } from './summarizer/types'
 import { cosine, OllamaSummarizer } from './summarizer/ollama'
 import { AiEngine } from './summarizer/engine'
 import { AiManager } from './summarizer/manager'
+import { AppleSummarizer, AutoSummarizer } from './summarizer/apple'
+import { registerAppleAiHelper } from './safe-exec/allowlist'
+import { existsSync } from 'node:fs'
 
 export interface AppContext {
   dataDir: string
@@ -51,6 +54,12 @@ export function migrationsDir(): string {
   return app.isPackaged
     ? join(process.resourcesPath, 'migrations')
     : join(app.getAppPath(), 'src/main/db/migrations')
+}
+
+export function appleHelperPath(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'apple-ai/waypoint-apple-ai')
+    : join(app.getAppPath(), 'resources/apple-ai/waypoint-apple-ai')
 }
 
 export function engineBinary(): string {
@@ -120,14 +129,20 @@ export async function createContext(hooks: ContextHooks = {}): Promise<AppContex
     () => aiEngine.baseUrl(),
     () => aiEngine.available,
   )
+  const helper = appleHelperPath()
+  if (existsSync(helper)) registerAppleAiHelper(helper)
+  const apple = new AppleSummarizer(exec, () => existsSync(helper))
   const ai = new AiManager(
     aiEngine,
     ollama,
     () => store.getSettings(),
     hooks.onAiProgress,
     (l) => console.warn(l),
+    apple,
   )
-  const summarizer = hooks.summarizer ?? ollama
+  // Apple's on-device model first, then the downloaded model, then the plain summary.
+  const summarizer =
+    hooks.summarizer ?? new AutoSummarizer(apple, ollama, () => store.getSettings())
   const checkpoints = new CheckpointService({
     store,
     engine,

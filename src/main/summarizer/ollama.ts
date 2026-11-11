@@ -1,6 +1,6 @@
 import { homedir, totalmem } from 'node:os'
 import { z } from 'zod'
-import { OLLAMA_MODEL_BY_RAM } from '@shared/constants'
+import { FALLBACK_MODEL } from '@shared/constants'
 import type { AiDownload, AiStatus, ResourceRef } from '@shared/schemas'
 import { guardedFetch } from '../net'
 import { templateSummary } from './template'
@@ -27,16 +27,12 @@ export function ramGb(): number {
   return Math.round(totalmem() / 1024 ** 3)
 }
 
-export function recommendModel(gb = ramGb()): string {
-  return (OLLAMA_MODEL_BY_RAM.find((m) => gb <= m.maxGb) ?? OLLAMA_MODEL_BY_RAM.at(-1)!).model
+/** The quiet background fallback model; the same for every Mac (see FALLBACK_MODEL). */
+export function recommendModel(): string {
+  return FALLBACK_MODEL
 }
 
-export const SYSTEM_PROMPT = `You write a short "What you were doing" recap for someone returning to their work.
-Rules:
-- Write 2 or 3 plain sentences, second person ("You were ...").
-- Describe only the state of the work: what was open, what was being edited or read, and where things stood.
-- Do NOT list decisions, open questions, next steps, advice, or anything to do.
-- Use only the facts given. Do not guess at contents you weren't shown. No markdown, no lists, no preamble.`
+export const SYSTEM_PROMPT = `You write a short recap for someone returning to their work. Write 2 or 3 natural sentences in second person ("You were ..."). Mention the project, what was being edited (file names, not full paths), and where things stood (branch, uncommitted changes, related tickets, pages or drafts). Only name files that appear under "Open files". Describe only the state of the work. Never give advice, next steps, decisions or questions. Use only the facts given. Plain text only, no headings, no lists.`
 
 /** Turns checkpoint metadata into a compact fact sheet (titles, paths, branches only). */
 export function factSheet(input: SummaryInput): string {
@@ -63,9 +59,9 @@ export function factSheet(input: SummaryInput): string {
         : '',
     10,
   )
-  add('Git', by(['gitState']), (r) =>
+  add('Git repository (not a file)', by(['gitState']), (r) =>
     r.kind === 'gitState'
-      ? `${r.repoPath.split('/').pop()} on ${r.branch}, ${r.dirtyFiles} uncommitted file(s)`
+      ? `repository "${r.repoPath.split('/').pop()}": branch ${r.branch}, ${r.dirtyFiles} uncommitted change(s)`
       : '',
   )
   add(
@@ -129,9 +125,12 @@ export class OllamaSummarizer implements Summarizer {
     }
   }
 
-  async status(selected: string, download: AiDownload | null = null): Promise<AiStatus> {
+  async status(
+    selected: string,
+    download: AiDownload | null = null,
+  ): Promise<Omit<AiStatus, 'apple' | 'activeSource'>> {
     const gb = ramGb()
-    const selectedModel = selected || recommendModel(gb)
+    const selectedModel = selected || recommendModel()
     const models = await this.listModels()
     const has = (m: string) => !!models && (models.includes(m) || models.includes(`${m}:latest`))
     return {
@@ -139,7 +138,7 @@ export class OllamaSummarizer implements Summarizer {
       running: models !== null,
       models: models ?? [],
       selectedModel,
-      recommendedModel: recommendModel(gb),
+      recommendedModel: recommendModel(),
       ramGb: gb,
       modelAvailable: has(selectedModel),
       download,

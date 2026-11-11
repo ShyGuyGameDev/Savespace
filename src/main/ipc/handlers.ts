@@ -141,8 +141,8 @@ export function createHandlers(
         recentTitles: [],
         at: Date.now(),
       }
-      const r = await ctx.ollama.summarize(input)
-      return { ok: r.source === 'ollama', sample: r.text, source: r.source }
+      const r = await ctx.summarizer.summarize(input)
+      return { ok: r.source !== 'template', sample: r.text, source: r.source }
     },
 
     'privacy:audit': (input) => store.listAudit(input?.limit ?? 300),

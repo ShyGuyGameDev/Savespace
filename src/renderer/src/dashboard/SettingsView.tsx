@@ -6,6 +6,16 @@ import { Badge, Card, Input, Kbd, SectionTitle, Switch } from '@/components/ui/m
 import { api, useIpc, useIpcMutation } from '@/lib/bridge'
 import { formatHotkey } from '@/lib/hotkeys'
 import { toast } from './toast'
+
+const APPLE_REASONS: Record<string, string> = {
+  deviceNotEligible: 'This Mac doesn’t support Apple Intelligence.',
+  appleIntelligenceNotEnabled:
+    'Apple Intelligence is off. Turn it on in System Settings → Apple Intelligence & Siri.',
+  modelNotReady:
+    'macOS is still downloading Apple’s model. It will be used automatically when ready.',
+  osTooOld: 'Needs macOS 26 or later.',
+  notBundled: 'Not included in this build.',
+}
 import { AiDownloadBar, useAiStatus } from '@/components/AiDownload'
 
 function Row({
@@ -172,7 +182,7 @@ export function SettingsView() {
           <Card className="divide-y divide-border">
             <Row
               label="Use local AI for summaries"
-              hint="Built into Waypoint and runs only on this Mac. Turning it off stops the AI engine; you’ll get simple summaries."
+              hint="Runs only on this Mac. Turn off to get simple summaries."
             >
               <Switch
                 label="Use local AI for summaries"
@@ -180,76 +190,109 @@ export function SettingsView() {
                 onCheckedChange={(c) => patch({ aiEnabled: c })}
               />
             </Row>
-            <div className="p-3">
-              <div className="mb-2 flex items-center gap-2">
+            <Row
+              label="AI source"
+              hint="Automatic uses Apple’s on-device AI when this Mac has it, otherwise a small downloaded model."
+              htmlFor="ai-source"
+            >
+              <select
+                id="ai-source"
+                className="h-8 rounded-md border border-border bg-background px-2 text-[13px]"
+                value={v.aiProvider}
+                disabled={!v.aiEnabled}
+                onChange={(e) => patch({ aiProvider: e.target.value as Settings['aiProvider'] })}
+              >
+                <option value="auto">Automatic (recommended)</option>
+                <option value="apple">Apple on-device AI only</option>
+                <option value="downloaded">Downloaded model only</option>
+              </select>
+            </Row>
+            <div className="space-y-3 p-3 text-[13px]">
+              <p className="flex items-center gap-2">
                 <Cpu className="size-4 text-muted-foreground" aria-hidden />
-                <p className="text-[13px] font-medium">AI engine</p>
-                {!ai.status?.installed ? (
-                  <Badge>Not included in this build</Badge>
-                ) : !v.aiEnabled ? (
-                  <Badge>Off</Badge>
-                ) : ai.status.running ? (
-                  <Badge tone="success">Running</Badge>
-                ) : (
-                  <Badge tone="warning">Starting…</Badge>
-                )}
-                {ai.status?.modelAvailable && v.aiEnabled && (
-                  <Badge tone="success">Model ready</Badge>
-                )}
-                <span className="ml-auto text-[12px] text-muted-foreground">
-                  Recommended for {ai.status?.ramGb} GB: {ai.status?.recommendedModel}
-                </span>
+                <span className="font-medium">Now using:</span>
+                <Badge tone={ai.status?.activeSource === 'template' ? 'neutral' : 'success'}>
+                  {ai.status?.activeSource === 'apple'
+                    ? 'Apple on-device AI'
+                    : ai.status?.activeSource === 'ollama'
+                      ? `Downloaded model (${ai.status.selectedModel})`
+                      : 'Simple summaries'}
+                </Badge>
+              </p>
+              <div>
+                <p className="font-medium">Apple on-device AI</p>
+                <p className="text-[12px] text-muted-foreground">
+                  {ai.status?.apple.available
+                    ? 'Available on this Mac. Nothing to download.'
+                    : (APPLE_REASONS[ai.status?.apple.reason ?? ''] ??
+                      'Not available on this Mac.')}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="model" className="text-[12px] text-muted-foreground">
-                  Model
-                </label>
-                <select
-                  id="model"
-                  className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-[13px]"
-                  value={v.ollamaModel || ai.status?.recommendedModel || ''}
-                  onChange={(e) => patch({ ollamaModel: e.target.value })}
-                >
-                  {[...new Set([...(ai.status?.models ?? []), ...SUGGESTED_MODELS])].map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                      {ai.status?.models.includes(m) ? ' (downloaded)' : ''}
-                      {m === ai.status?.recommendedModel ? ' (recommended)' : ''}
-                    </option>
-                  ))}
-                </select>
-                {v.aiEnabled &&
-                  ai.status?.installed &&
-                  !ai.status.modelAvailable &&
-                  !ai.download?.active && (
-                    <Button variant="secondary" onClick={() => void api('ai:download')}>
-                      Download
-                    </Button>
+              {v.aiProvider !== 'apple' && (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">Downloaded model</p>
+                    {ai.status?.modelAvailable ? (
+                      <Badge tone="success">Downloaded</Badge>
+                    ) : ai.status?.apple.available && v.aiProvider === 'auto' ? (
+                      <Badge>Not needed</Badge>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <label htmlFor="model" className="sr-only">
+                      Model
+                    </label>
+                    <select
+                      id="model"
+                      className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-[13px]"
+                      value={v.ollamaModel || ai.status?.recommendedModel || ''}
+                      disabled={!v.aiEnabled}
+                      onChange={(e) => patch({ ollamaModel: e.target.value })}
+                    >
+                      {[...new Set([...(ai.status?.models ?? []), ...SUGGESTED_MODELS])].map(
+                        (m) => (
+                          <option key={m} value={m}>
+                            {m}
+                            {ai.status?.models.includes(m) ? ' (downloaded)' : ''}
+                            {m === ai.status?.recommendedModel ? ' (default, ~2 GB)' : ' (larger)'}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                    {v.aiEnabled &&
+                      ai.status?.installed &&
+                      !ai.status.modelAvailable &&
+                      !ai.download?.active &&
+                      !(ai.status.apple.available && v.aiProvider === 'auto') && (
+                        <Button variant="secondary" onClick={() => void api('ai:download')}>
+                          Download
+                        </Button>
+                      )}
+                  </div>
+                  {ai.download && ai.download.status !== 'success' && (
+                    <div className="mt-2">
+                      <AiDownloadBar d={ai.download} />
+                    </div>
                   )}
-                <Button
-                  variant="secondary"
-                  disabled={testing || !ai.status?.modelAvailable}
-                  onClick={async () => {
-                    setTesting(true)
-                    const r = await api('ai:test').finally(() => setTesting(false))
-                    toast(
-                      r.ok ? 'Local AI is working' : 'Used the simple summary (AI not ready yet)',
-                    )
-                  }}
-                >
-                  <RefreshCw className={testing ? 'animate-spin' : ''} aria-hidden /> Test
-                </Button>
-              </div>
-              {ai.download && ai.download.status !== 'success' && (
-                <div className="mt-3">
-                  <AiDownloadBar d={ai.download} />
                 </div>
               )}
-              <p className="mt-2 text-[12px] text-muted-foreground">
-                Choosing a different model downloads it automatically into Waypoint’s own folder.
-                Models are stored in{' '}
-                <span className="font-mono">~/Library/Application Support/Waypoint/ai</span>.
-              </p>
+              <Button
+                variant="secondary"
+                disabled={testing || !v.aiEnabled}
+                onClick={async () => {
+                  setTesting(true)
+                  const r = await api('ai:test').finally(() => setTesting(false))
+                  toast(
+                    r.source === 'apple'
+                      ? 'Apple on-device AI is working'
+                      : r.source === 'ollama'
+                        ? 'Downloaded model is working'
+                        : 'Used a simple summary (AI not ready yet)',
+                  )
+                }}
+              >
+                <RefreshCw className={testing ? 'animate-spin' : ''} aria-hidden /> Test
+              </Button>
             </div>
           </Card>
 

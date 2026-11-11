@@ -288,44 +288,50 @@ function AutomationStep() {
 function AiStep() {
   const { status, download } = useAiStatus()
   const asked = useRef(false)
-  // Local AI is built in: start the one-time model download as soon as this step is shown.
+  const apple = status?.apple.available
+  // Without Apple's on-device model, quietly fetch the small fallback model in the background.
   useEffect(() => {
-    if (asked.current || !status || !status.installed || status.modelAvailable || download?.active)
+    if (
+      asked.current ||
+      !status ||
+      apple ||
+      !status.installed ||
+      status.modelAvailable ||
+      download?.active
+    )
       return
     asked.current = true
     void api('ai:download')
-  }, [status, download])
-  const ready = status?.modelAvailable || download?.status === 'success'
+  }, [status, apple, download])
   return (
     <Hero icon={<Cpu />} title="Local summaries, built in">
       <p>
-        {APP_NAME} writes a 2–3 sentence “what you were doing” recap with a small AI model that runs{' '}
+        {APP_NAME} writes a 2–3 sentence “what you were doing” recap with AI that runs{' '}
         <strong className="text-foreground">entirely on this Mac</strong>. Nothing you work on is
         ever sent anywhere.
       </p>
-      {!status?.installed ? (
-        <p className="rounded-lg border border-border p-3 text-[13px]">
-          This build doesn’t include the AI engine, so you’ll get simple summaries instead.
-        </p>
-      ) : ready ? (
+      {!status ? null : apple ? (
         <Badge tone="success">
-          <Check className="size-3" aria-hidden /> Ready: {status?.selectedModel}
+          <Check className="size-3" aria-hidden /> Ready: using Apple’s on-device AI. Nothing to
+          download.
         </Badge>
-      ) : (
+      ) : status.modelAvailable || download?.status === 'success' ? (
+        <Badge tone="success">
+          <Check className="size-3" aria-hidden /> Ready
+        </Badge>
+      ) : status.installed ? (
         <div className="space-y-2 rounded-lg border border-border p-3 text-[13px]">
-          <p className="font-medium text-foreground">Getting the AI model ready (one time)</p>
-          {download ? <AiDownloadBar d={download} /> : <p className="text-[12px]">Starting…</p>}
-          <p className="text-[12px]">
-            {status.recommendedModel} was picked for your {status.ramGb} GB of memory. You can keep
-            going; the download continues in the background, and you can change the model or turn AI
-            off in Settings.
+          <p>
+            This Mac can’t use Apple’s on-device AI, so {APP_NAME} is quietly getting a small AI
+            model ready in the background (about 2 GB, one time). You can keep going. Until it’s
+            ready, you’ll get simple summaries.
           </p>
-          {download?.error && (
-            <Button size="sm" variant="secondary" onClick={() => void api('ai:download')}>
-              Try again
-            </Button>
-          )}
+          {download && <AiDownloadBar d={download} />}
         </div>
+      ) : (
+        <p className="rounded-lg border border-border p-3 text-[13px]">
+          You’ll get simple summaries built from each checkpoint.
+        </p>
       )}
     </Hero>
   )

@@ -32,6 +32,7 @@ const SettingsPatchSchema = z
     launchAtLogin: z.boolean(),
     ollamaModel: z.string().max(200),
     aiEnabled: z.boolean(),
+    aiProvider: z.enum(['auto', 'apple', 'downloaded']),
     hotkeyPalette: z.string().min(1).max(60),
     hotkeyCheckpoint: z.string().min(1).max(60),
     connectorsEnabled: z.record(z.string(), z.boolean()),
@@ -127,7 +128,7 @@ export const IpcContract = {
     output: z.object({
       ok: z.boolean(),
       sample: z.string(),
-      source: z.enum(['ollama', 'template']),
+      source: z.enum(['apple', 'ollama', 'template']),
     }),
   },
 

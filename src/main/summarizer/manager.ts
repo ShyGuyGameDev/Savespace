@@ -1,5 +1,6 @@
 import type { Settings } from '@shared/constants'
 import type { AiDownload, AiStatus } from '@shared/schemas'
+import type { AppleSummarizer } from './apple'
 import type { AiEngine } from './engine'
 import { recommendModel, type OllamaSummarizer } from './ollama'
 
@@ -19,6 +20,7 @@ export class AiManager {
     private readonly getSettings: () => Settings,
     private readonly onProgress: (d: AiDownload) => void = () => {},
     private readonly log: (s: string) => void = () => {},
+    private readonly apple: Pick<AppleSummarizer, 'status'> | null = null,
   ) {}
 
   selectedModel(): string {
@@ -26,7 +28,19 @@ export class AiManager {
   }
 
   async status(): Promise<AiStatus> {
-    return this.ollama.status(this.getSettings().ollamaModel, this.download)
+    const s = this.getSettings()
+    const base = await this.ollama.status(s.ollamaModel, this.download)
+    const apple = this.apple
+      ? await this.apple.status()
+      : { available: false, reason: 'notBundled' }
+    const activeSource: AiStatus['activeSource'] = !s.aiEnabled
+      ? 'template'
+      : s.aiProvider !== 'downloaded' && apple.available
+        ? 'apple'
+        : s.aiProvider !== 'apple' && base.running && base.modelAvailable
+          ? 'ollama'
+          : 'template'
+    return { ...base, apple, activeSource }
   }
 
   /** Called at startup and whenever AI settings change. */
@@ -34,6 +48,16 @@ export class AiManager {
     const s = this.getSettings()
     if (!s.aiEnabled) {
       this.abort?.abort()
+      this.engine.stop()
+      return
+    }
+    // Apple's on-device model needs no download: if it's usable, don't start the engine at all.
+    if (s.aiProvider !== 'downloaded' && this.apple && (await this.apple.status(true)).available) {
+      this.abort?.abort()
+      this.engine.stop()
+      return
+    }
+    if (s.aiProvider === 'apple') {
       this.engine.stop()
       return
     }

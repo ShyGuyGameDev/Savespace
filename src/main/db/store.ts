@@ -15,6 +15,7 @@ import {
   type Project,
   type ResourceRef,
   type Suggestion,
+  type SummarySource,
 } from '@shared/schemas'
 import type { Db } from './client'
 import * as t from './schema'
@@ -216,7 +217,7 @@ export class Store {
     projectId: string | null
     trigger: CheckpointTrigger
     summary: string
-    summarySource: 'ollama' | 'template'
+    summarySource: SummarySource
     resources: ResourceRef[]
     createdAt?: number
   }): Checkpoint {
@@ -267,7 +268,7 @@ export class Store {
       createdAt: r.createdAt,
       trigger: r.trigger as CheckpointTrigger,
       summary: r.summary,
-      summarySource: r.summarySource as 'ollama' | 'template',
+      summarySource: r.summarySource as SummarySource,
     }
   }
 

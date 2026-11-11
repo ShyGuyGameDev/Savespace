@@ -166,11 +166,8 @@ describe('ollama summarizer', () => {
     expect(off.running).toBe(false)
   })
 
-  it('recommends a model by RAM', () => {
-    expect(recommendModel(8)).toBe('llama3.2:3b')
-    expect(recommendModel(16)).toBe('gemma4:e2b')
-    expect(recommendModel(32)).toBe('gemma4:e4b')
-    expect(recommendModel(64)).toBe('gemma4:12b')
+  it('uses the same small, accurate fallback model on every Mac', () => {
+    expect(recommendModel()).toBe('llama3.2:3b')
   })
 
   it('never puts file contents in the fact sheet (paths and titles only)', () => {

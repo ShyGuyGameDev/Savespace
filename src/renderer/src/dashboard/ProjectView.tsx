@@ -320,8 +320,12 @@ function CheckpointDetail({
             className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground"
           >
             What you were doing
-            <Badge tone={cp.summarySource === 'ollama' ? 'accent' : 'neutral'}>
-              {cp.summarySource === 'ollama' ? (
+            <Badge tone={cp.summarySource === 'template' ? 'neutral' : 'accent'}>
+              {cp.summarySource === 'apple' ? (
+                <>
+                  <Cpu className="size-3" aria-hidden /> Apple on-device AI
+                </>
+              ) : cp.summarySource === 'ollama' ? (
                 <>
                   <Cpu className="size-3" aria-hidden /> Local AI
                 </>
@@ -331,15 +335,17 @@ function CheckpointDetail({
             </Badge>
           </h2>
           <p className="selectable text-[14px] leading-relaxed">{cp.summary}</p>
-          {cp.summarySource === 'template' && ai.data?.installed && !ai.data.modelAvailable && (
-            <p className="mt-2 text-[12px] text-muted-foreground">
-              Richer recaps start once the built-in AI model finishes downloading (
-              <a href="#/settings" className="text-primary underline-offset-2 hover:underline">
-                see progress
-              </a>
-              ).
-            </p>
-          )}
+          {cp.summarySource === 'template' &&
+            ai.data?.activeSource === 'template' &&
+            ai.data.download?.active && (
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                Richer recaps start once the built-in AI model finishes downloading (
+                <a href="#/settings" className="text-primary underline-offset-2 hover:underline">
+                  see progress
+                </a>
+                ).
+              </p>
+            )}
         </section>
 
         <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">

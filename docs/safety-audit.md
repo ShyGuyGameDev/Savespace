@@ -38,7 +38,8 @@ Every captured URL is sanitized: URLs with embedded credentials are dropped, and
 - **Connector tokens:** `connectors/<service>.token.enc`, also encrypted by `safeStorage`.
 - **Rolling activity buffer:** raw samples are kept for 14 days by default (configurable 1–365) and pruned automatically.
 - **Exports:** `exports/waypoint-export-<time>.json` inside the same folder. Waypoint never writes anywhere else.
-- **Built-in AI engine:** Waypoint bundles the Ollama engine (v0.40.12, MIT, checksum-pinned). It is started by Waypoint with a **clean environment**:
+- **Apple on-device AI (preferred):** a 67 KB helper, compiled from `native/apple-ai/main.swift`, calls Apple's **on-device** `SystemLanguageModel` only. A unit test fails if the source mentions `PrivateCloudComputeLanguageModel` or any networking API. It receives the same metadata-only fact sheet as the downloaded model and needs no download. SafeExec allows exactly `status` or `summarize <instructions> <prompt>`.
+- **Built-in AI engine (fallback):** Waypoint bundles the Ollama engine (v0.40.12, MIT, checksum-pinned). It is started by Waypoint with a **clean environment**:
   - It runs only on `127.0.0.1` at a random port, and only while Waypoint runs.
   - `OLLAMA_NO_CLOUD=1` is set, and its `HOME` and models folder are inside Waypoint's data folder (`ai/`), so it never touches `~/.ollama`.
   - **All of its outbound traffic is forced through Waypoint's egress gate** (`HTTPS_PROXY` → `summarizer/egress.ts`). The gate allows connections only while Waypoint is downloading a model, only to `registry.ollama.ai` and Ollama's R2 blob host, on port 443.
@@ -75,5 +76,6 @@ Every captured URL is sanitized: URLs with embedded credentials are dropped, and
 3. **macOS can add extended attributes** (such as "last opened" dates) to files you open. These are metadata, not content, and don't change the SHA-256 or mtime, which is what the test checks.
 4. **Safari private windows can't be detected through scripting.** That's why Safari tab capture is off by default.
 5. **Local web pages and the AI engine:** Ollama always accepts browser requests from `localhost` origins, and that can't be turned off. Waypoint picks a random port each launch, and the engine holds no personal data (it only sees the metadata fact sheet for each summary). Still, a malicious page on your own Mac that scanned ports could use it to run the model.
-6. **Small-model accuracy:** in the live test, the 3B model called uncommitted changes "staged", a small embellishment. Summaries are clearly labelled **Local AI** and only describe metadata Waypoint gave them.
-7. **Unsigned builds:** macOS ties Accessibility/Automation grants to the code signature, so an unsigned rebuild may need permissions granted again.
+6. **Small-model accuracy.** Choosing the fallback, I compared models on the same checkpoint (2026-11-11). `gemma3:1b` and `llama3.2:1b` invented facts (a wrong line number, "several related tickets", "no issues"). `llama3.2:3b` was accurate in 3 of 3 runs, so it is the fallback. Apple's on-device model initially read the git repository as a file name; labelling the fact sheet's git section "Git repository (not a file)" and telling it to name only listed files fixed this (3 of 3 identical, accurate runs).
+7. **Labelled summaries:** with the older instructions, the 3B model once called uncommitted changes "staged". Every summary is labelled with its source (Apple on-device AI, Downloaded model, or Simple summary) and only describes metadata Waypoint gave it.
+8. **Unsigned builds:** macOS ties Accessibility/Automation grants to the code signature, so an unsigned rebuild may need permissions granted again.

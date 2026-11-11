@@ -85,7 +85,8 @@ app.whenReady().then(async () => {
         if (keys.some((k) => k.startsWith('hotkey'))) registerHotkeys()
         if (keys.includes('captureIntervalSec') && !process.env['WAYPOINT_E2E'])
           ctx?.scheduler.start()
-        const aiKeys = keys.includes('aiEnabled') || keys.includes('ollamaModel')
+        const aiKeys =
+          keys.includes('aiEnabled') || keys.includes('ollamaModel') || keys.includes('aiProvider')
         if (aiKeys && (!process.env['WAYPOINT_E2E'] || process.env['WAYPOINT_E2E_AI']))
           void ctx?.ai.sync()
         if (keys.includes('launchAtLogin'))

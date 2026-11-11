@@ -18,6 +18,9 @@ extraResources:
   # Bundled local-AI engine (Ollama, MIT), fetched + SHA-256 verified by scripts/fetch-ollama.mjs
   - from: resources/ollama
     to: ollama
+  # Apple on-device AI bridge (built from native/apple-ai/main.swift by scripts/build-apple-ai.mjs)
+  - from: resources/apple-ai
+    to: apple-ai
 asarUnpack:
   - '**/*.node'
 npmRebuild: false

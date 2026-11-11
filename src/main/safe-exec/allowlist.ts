@@ -227,6 +227,32 @@ export const BINARIES: Record<string, BinarySpec> = {
   },
 }
 
+/**
+ * Waypoint's own Apple on-device AI bridge (resources/apple-ai/waypoint-apple-ai). Its path is only
+ * known at runtime (inside the app bundle), so it's registered once at startup.
+ * Allowed shapes: `status` | `summarize <instructions> <prompt>`.
+ */
+BINARIES['apple-ai'] = {
+  id: 'apple-ai',
+  candidates: [],
+  validate(args) {
+    if (args.length === 1 && args[0] === 'status') return null
+    if (
+      args.length === 3 &&
+      args[0] === 'summarize' &&
+      args[1]!.length <= 4000 &&
+      args[2]!.length <= 12000
+    )
+      return null
+    return 'apple-ai: only `status` or `summarize <instructions> <prompt>`'
+  },
+}
+
+export function registerAppleAiHelper(path: string): void {
+  if (!path.endsWith('/apple-ai/waypoint-apple-ai')) throw new Error('unexpected helper path')
+  BINARIES['apple-ai']!.candidates = [path]
+}
+
 export function resolveBinary(
   id: string,
   exists: (p: string) => boolean = existsSync,

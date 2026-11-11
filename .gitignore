@@ -52,3 +52,4 @@ npm-debug.log*
 
 # bundled AI engine (downloaded + checksum-verified by scripts/fetch-ollama.mjs)
 resources/ollama/
+resources/apple-ai/

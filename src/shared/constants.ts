@@ -7,22 +7,19 @@ export const DEFAULT_HOTKEYS = {
   checkpointNow: 'Alt+Command+S',
 } as const
 
-/** Default Ollama model chosen by installed RAM (GB). Tags verified on ollama.com/library 2026-11-10. */
-export const OLLAMA_MODEL_BY_RAM: { maxGb: number; model: string; sizeGb: number }[] = [
-  { maxGb: 8, model: 'llama3.2:3b', sizeGb: 2.0 },
-  { maxGb: 16, model: 'gemma4:e2b', sizeGb: 4.6 },
-  { maxGb: 32, model: 'gemma4:e4b', sizeGb: 6.6 },
-  { maxGb: Infinity, model: 'gemma4:12b', sizeGb: 9.5 },
-]
+/**
+ * Fallback model, downloaded quietly in the background ONLY when Apple's on-device model isn't
+ * available. Chosen after side-by-side tests on 2026-11-11: the 1B models (gemma3:1b 806 MB,
+ * llama3.2:1b 1.3 GB) invented facts; llama3.2:3b (2.0 GB) stayed accurate. Same for every Mac.
+ */
+export const FALLBACK_MODEL = 'llama3.2:3b'
 
-export const SUGGESTED_MODELS = [
-  'llama3.2:3b',
-  'gemma4:e2b',
-  'gemma4:e4b',
-  'gemma4:12b',
-  'qwen3:4b',
-  'qwen3:8b',
-]
+/** Larger models the user may pick in Settings (tags verified on ollama.com/library). */
+export const SUGGESTED_MODELS = ['llama3.2:3b', 'gemma4:e2b', 'gemma4:e4b', 'gemma4:12b']
+
+/** Where summaries come from. "auto" = Apple's on-device model if available, else the downloaded model. */
+export const AI_PROVIDERS = ['auto', 'apple', 'downloaded'] as const
+export type AiProvider = (typeof AI_PROVIDERS)[number]
 
 /** Never captured, never restored, regardless of user settings. */
 export const HARD_EXCLUDED_BUNDLE_IDS = [
@@ -78,6 +75,7 @@ export const DEFAULT_SETTINGS = {
   launchAtLogin: false,
   ollamaModel: '' as string,
   aiEnabled: true,
+  aiProvider: 'auto' as AiProvider,
   hotkeyPalette: DEFAULT_HOTKEYS.palette as string,
   hotkeyCheckpoint: DEFAULT_HOTKEYS.checkpointNow as string,
   connectorsEnabled: { gmail: false, drive: false, calendar: false } as Record<string, boolean>,

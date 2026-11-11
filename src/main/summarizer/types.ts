@@ -1,4 +1,4 @@
-import type { CheckpointTrigger, Project, ResourceRef } from '@shared/schemas'
+import type { CheckpointTrigger, Project, ResourceRef, SummarySource } from '@shared/schemas'
 
 export interface SummaryInput {
   project: Project | null
@@ -10,5 +10,5 @@ export interface SummaryInput {
 }
 
 export interface Summarizer {
-  summarize(input: SummaryInput): Promise<{ text: string; source: 'ollama' | 'template' }>
+  summarize(input: SummaryInput): Promise<{ text: string; source: SummarySource }>
 }
