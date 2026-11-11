@@ -102,33 +102,54 @@ describe('store', () => {
     ).toThrow()
   })
 
-  it('merges and splits projects', () => {
+  it('edits and deletes projects (checkpoints are kept, unassigned)', () => {
     ctx = tempDb()
     const a = ctx.store.createProject('A', ['repo:/a'])
-    const b = ctx.store.createProject('B', ['host:b.com'])
     ctx.store.createCheckpoint({
       projectId: a.id,
       trigger: 'manual',
       summary: '',
       summarySource: 'template',
-      resources: [{ kind: 'gitState', app: 'git', repoPath: '/a', branch: 'main', dirtyFiles: 0 }],
+      resources: [],
     })
-    ctx.store.createCheckpoint({
-      projectId: b.id,
-      trigger: 'manual',
-      summary: '',
-      summarySource: 'template',
-      resources: [{ kind: 'url', app: 'com.google.Chrome', url: 'https://b.com/x' }],
+    const edited = ctx.store.updateProject(a.id, {
+      name: ' Atlas ',
+      color: '#123456',
+      signals: ['repo:/a', 'host:acme.dev', 'host:acme.dev', ' '],
     })
-    ctx.store.mergeProjects(b.id, a.id)
-    expect(ctx.store.getProject(b.id)).toBeNull()
-    expect(ctx.store.getProject(a.id)?.signals.sort()).toEqual(['host:b.com', 'repo:/a'])
-    expect(ctx.store.listCheckpoints({ projectId: a.id })).toHaveLength(2)
+    expect(edited).toMatchObject({
+      name: 'Atlas',
+      color: '#123456',
+      signals: ['repo:/a', 'host:acme.dev'],
+    })
+    ctx.store.deleteProject(a.id)
+    expect(ctx.store.getProject(a.id)).toBeNull()
+    expect(ctx.store.listCheckpoints({ projectId: null })).toHaveLength(1)
+  })
 
-    const split = ctx.store.splitProject(a.id, 'B again', ['host:b.com'])
-    expect(ctx.store.getProject(a.id)?.signals).toEqual(['repo:/a'])
-    expect(ctx.store.listCheckpoints({ projectId: split.id })).toHaveLength(1)
-    expect(ctx.store.listCheckpoints({ projectId: a.id })).toHaveLength(1)
+  it('edits a checkpoint summary and removes saved items', () => {
+    ctx = tempDb()
+    const cp = ctx.store.createCheckpoint({
+      projectId: null,
+      trigger: 'manual',
+      summary: 'old',
+      summarySource: 'template',
+      resources: [
+        { kind: 'url', app: 'com.google.Chrome', url: 'https://a.test' },
+        { kind: 'url', app: 'com.google.Chrome', url: 'https://youtube.com/x' },
+        { kind: 'url', app: 'com.google.Chrome', url: 'https://c.test' },
+      ],
+    })
+    const e = ctx.store.updateCheckpoint(cp.id, {
+      summary: ' You were fixing the limiter. ',
+      removeItems: [1],
+    })
+    expect(e.summary).toBe('You were fixing the limiter.')
+    expect(e.resources.map((r) => (r.kind === 'url' ? r.url : ''))).toEqual([
+      'https://a.test',
+      'https://c.test',
+    ])
+    expect(ctx.store.listAudit()[0]?.detail).toMatch(/removed 1 item/)
   })
 
   it('prunes the rolling activity buffer by age', () => {

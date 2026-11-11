@@ -178,6 +178,32 @@ export class OllamaSummarizer implements Summarizer {
     }
   }
 
+  /** Asks the downloaded model a question (deterministic settings). Null if not ready. */
+  async ask(instructions: string, prompt: string): Promise<string | null> {
+    if (!this.enabled()) return null
+    try {
+      const res = await this.fetcher(`${this.baseUrl()}/api/chat`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        timeoutMs: 45_000,
+        body: JSON.stringify({
+          model: this.getModel() || recommendModel(),
+          stream: false,
+          keep_alive: '5m',
+          options: { temperature: 0, num_ctx: 4096, num_predict: 120 },
+          messages: [
+            { role: 'system', content: instructions },
+            { role: 'user', content: prompt },
+          ],
+        }),
+      })
+      if (!res.ok) return null
+      return ChatSchema.parse(await res.json()).message.content
+    } catch {
+      return null
+    }
+  }
+
   async summarize(input: SummaryInput) {
     const fallback = { text: templateSummary(input), source: 'template' as const }
     if (!this.enabled()) return fallback

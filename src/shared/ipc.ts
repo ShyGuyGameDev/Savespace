@@ -60,15 +60,19 @@ export const IpcContract = {
     output: ProjectSchema,
   },
   'projects:archive': { input: z.object({ id, archived: z.boolean() }), output: ok },
-  'projects:merge': { input: z.object({ sourceId: id, targetId: id }), output: ok },
-  'projects:split': {
+  'projects:update': {
     input: z.object({
       id,
-      newName: z.string().min(1).max(120),
-      signals: z.array(z.string().max(300)).min(1),
+      name: z.string().min(1).max(120).optional(),
+      color: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional(),
+      signals: z.array(z.string().min(3).max(1000)).max(100).optional(),
     }),
     output: ProjectSchema,
   },
+  'projects:delete': { input: z.object({ id }), output: ok },
 
   'checkpoints:list': {
     input: z.object({
@@ -80,6 +84,14 @@ export const IpcContract = {
   'checkpoints:get': { input: z.object({ id }), output: CheckpointSchema.nullable() },
   'checkpoints:create': {
     input: z.object({ projectId: id.nullable().optional() }).optional(),
+    output: CheckpointSchema,
+  },
+  'checkpoints:update': {
+    input: z.object({
+      id,
+      summary: z.string().max(2000).optional(),
+      removeItems: z.array(z.number().int().nonnegative()).max(1000).optional(),
+    }),
     output: CheckpointSchema,
   },
   'checkpoints:reassign': { input: z.object({ id, projectId: id.nullable() }), output: ok },

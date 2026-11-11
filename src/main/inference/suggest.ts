@@ -72,8 +72,6 @@ function prettify(s: string): string {
  *  - new-project: a strong signal (repo, folder, host, recurring calendar title) seen in ≥ 3 samples across
  *    ≥ 2 separate 10-minute windows and not covered by an existing project. Signals that co-occur with it
  *    in ≥ 40 % of its windows join the suggestion (e.g. a Jira host used alongside a repo).
- *  - merge: two confirmed projects whose activity overlaps in ≥ 60 % of the smaller one's windows.
- *  - split: one project whose strong signals form two groups that never share a window.
  */
 export function computeSuggestions(
   events: EventLite[],
@@ -151,79 +149,6 @@ export function computeSuggestions(
       targetProjectIds: [],
       fingerprint: fp('new', anchor),
     })
-  }
-
-  // ---- merge ----
-  const winsByProject = new Map<string, Set<number>>()
-  for (const e of events)
-    if (e.projectId) {
-      const s = winsByProject.get(e.projectId) ?? new Set<number>()
-      s.add(bucket(e.at))
-      winsByProject.set(e.projectId, s)
-    }
-  for (let i = 0; i < active.length; i++) {
-    for (let j = i + 1; j < active.length; j++) {
-      const a = active[i]!,
-        b = active[j]!
-      const wa = winsByProject.get(a.id),
-        wb = winsByProject.get(b.id)
-      if (!wa || !wb || wa.size < 3 || wb.size < 3) continue
-      // A window counts as shared if the other project is active in it or the adjacent one.
-      const shared = [...wa].filter((w) => wb.has(w) || wb.has(w - 1) || wb.has(w + 1)).length
-      const ratio = shared / Math.min(wa.size, wb.size)
-      if (ratio >= 0.6) {
-        const [keep, fold] = wa.size >= wb.size ? [a, b] : [b, a]
-        out.push({
-          kind: 'merge',
-          name: keep.name,
-          signals: [...new Set([...keep.signals, ...fold.signals])],
-          evidence: [
-            `“${fold.name}” and “${keep.name}” were used together in ${Math.round(ratio * 100)}% of sessions`,
-          ],
-          score: ratio * 5,
-          targetProjectIds: [keep.id, fold.id],
-          fingerprint: fp('merge', ...[a.id, b.id].sort()),
-        })
-      }
-    }
-  }
-
-  // ---- split ----
-  for (const p of active) {
-    const strong = p.signals.filter(
-      (s) => ANCHOR_KINDS.has(splitSignal(s)[0]) && splitSignal(s)[0] !== 'host',
-    )
-    if (strong.length < 2) continue
-    const winsOf = (s: string) =>
-      new Set(
-        events
-          .filter((e) => e.projectId === p.id && e.signals.some((o) => signalMatches(s, o)))
-          .map((e) => bucket(e.at)),
-      )
-    const groups: { sigs: string[]; wins: Set<number> }[] = []
-    for (const s of strong) {
-      const w = winsOf(s)
-      if (w.size < 3) continue
-      const g = groups.find((g) => [...w].some((x) => g.wins.has(x)))
-      if (g) {
-        g.sigs.push(s)
-        for (const x of w) g.wins.add(x)
-      } else groups.push({ sigs: [s], wins: w })
-    }
-    if (groups.length >= 2) {
-      const smaller = groups.sort((a, b) => a.wins.size - b.wins.size)[0]!
-      out.push({
-        kind: 'split',
-        name: nameFromSignal(smaller.sigs[0]!),
-        signals: smaller.sigs,
-        evidence: [
-          `“${p.name}” contains work that never happens at the same time: ${smaller.sigs.map((s) => s.replace(':', ' ')).join(', ')}`,
-        ],
-        score: 2,
-        targetProjectIds: [p.id],
-        fingerprint: fp('split', p.id, ...smaller.sigs.sort()),
-      })
-    }
   }
 
   return out.sort((a, b) => b.score - a.score).slice(0, 20)

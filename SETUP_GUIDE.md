@@ -296,6 +296,7 @@ In `electron-builder.yml`, change `arch: [arm64]` to `arch: [arm64, x64]` and ru
 7. **Projects:** after you've worked for a while, open **Suggestions**. Waypoint proposes projects from repeated folders, repos, sites and meetings. Press **C** to confirm, **E** to rename, **X** to dismiss. Nothing becomes a project until you confirm it.
 8. **From anywhere:** press **⌥⌘Space** for the command palette, type part of a project name, and press **Return** to resume it (**⌘Return** opens it in the dashboard instead).
 9. Press **?** in the dashboard for every keyboard shortcut.
+10. **Edit anything:** on a checkpoint, click **Edit** to change the "What you were doing" text or remove saved items (then **Save changes**). On a project, use the **⋯** menu → **Edit project…** to change its name, colour and "What belongs to this project" (folders and websites). Use **Delete project…** to remove it; its checkpoints are kept as unassigned.
 
 Waypoint also saves checkpoints automatically when you switch projects, go idle (10 minutes by default), at 6 pm, and when your Mac sleeps or locks. You can change all of this in **Settings**. **Arrange windows** (moving windows back to their old positions) is **off** by default.
 

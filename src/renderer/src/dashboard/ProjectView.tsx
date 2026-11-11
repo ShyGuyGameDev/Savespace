@@ -1,4 +1,5 @@
 import {
+  Archive,
   Bookmark,
   ChevronDown,
   Clock,
@@ -8,12 +9,12 @@ import {
   Play,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useEffect, useMemo, useState } from 'react'
 import type { Checkpoint, Project } from '@shared/schemas'
 import { ResourceIcon } from '@/components/ResourceIcon'
-import { PromptDialog } from '@/components/PromptDialog'
 import { RestorePreviewDialog } from '@/components/RestorePreview'
 import { Button } from '@/components/ui/button'
 import { Badge, EmptyState, Kbd, Tooltip } from '@/components/ui/misc'
@@ -22,7 +23,7 @@ import { formatHotkey } from '@/lib/hotkeys'
 import { appName, groupByApp, refLabel } from '@/lib/refs'
 import { cn, dayBucket, relativeTime } from '@/lib/utils'
 import { toast } from './toast'
-import { SplitDialog } from './Suggestions'
+import { DeleteProjectDialog, EditProjectDialog } from './EditProject'
 
 const TRIGGER_LABEL: Record<Checkpoint['trigger'], string> = {
   manual: 'Saved by you',
@@ -42,7 +43,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
   const list = useIpc('checkpoints:list', projectId ? { projectId, limit: 200 } : { limit: 200 })
   const [selected, setSelected] = useState<string | null>(routeCheckpoint)
   const [preview, setPreview] = useState<{ id: string; auto: boolean } | null>(null)
-  const [renaming, setRenaming] = useState(false)
+  const [editing, setEditing] = useState(false)
   const settings = useIpc('settings:get')
 
   const items = useMemo(() => list.data ?? [], [list.data])
@@ -103,7 +104,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
             {project?.name ?? 'All checkpoints'}
           </h1>
           {project && (
-            <ProjectMenu project={project} onRename={() => setRenaming(true)} navigate={navigate} />
+            <ProjectMenu project={project} onEdit={() => setEditing(true)} navigate={navigate} />
           )}
         </header>
         <div
@@ -161,6 +162,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
         <div className="drag h-12 shrink-0 border-b border-border" />
         {current ? (
           <CheckpointDetail
+            key={current.id}
             cp={current}
             projects={projects.data ?? []}
             onPreview={(auto) => setPreview({ id: current.id, auto })}
@@ -180,16 +182,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
         open={!!preview}
         onOpenChange={(o) => !o && setPreview(null)}
       />
-      {project && (
-        <PromptDialog
-          open={renaming}
-          onOpenChange={setRenaming}
-          title="Rename project"
-          label="Project name"
-          initial={project.name}
-          onSubmit={(name) => void api('projects:rename', { id: project.id, name })}
-        />
-      )}
+      {project && <EditProjectDialog project={project} open={editing} onOpenChange={setEditing} />}
     </div>
   )
 }
@@ -265,6 +258,23 @@ function CheckpointDetail({
   const groups = groupByApp(visible.map((ref) => ({ ref })))
   const frames = cp.resources.filter((r) => r.kind === 'windowFrame').length
   const project = projects.find((p) => p.id === cp.projectId)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(cp.summary)
+  const [removed, setRemoved] = useState<Set<number>>(new Set())
+  const startEdit = () => {
+    setDraft(cp.summary)
+    setRemoved(new Set())
+    setEditing(true)
+  }
+  const save = async () => {
+    await api('checkpoints:update', {
+      id: cp.id,
+      summary: draft.trim() !== cp.summary ? draft.trim() : undefined,
+      removeItems: removed.size ? [...removed] : undefined,
+    })
+    setEditing(false)
+    toast('Checkpoint updated')
+  }
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-2xl px-8 py-6">
@@ -286,28 +296,44 @@ function CheckpointDetail({
         <div className="mb-5 flex items-center gap-2">
           <ReassignMenu cp={cp} projects={projects} current={project} />
           <div className="ml-auto flex gap-2">
-            <Tooltip
-              content={
-                <>
-                  See exactly what will open <Kbd>R</Kbd>
-                </>
-              }
-            >
-              <Button variant="secondary" onClick={() => onPreview(false)}>
-                Preview restore
-              </Button>
-            </Tooltip>
-            <Tooltip
-              content={
-                <>
-                  Reopen everything <Kbd>↵</Kbd>
-                </>
-              }
-            >
-              <Button onClick={() => onPreview(true)}>
-                <Play aria-hidden /> Resume
-              </Button>
-            </Tooltip>
+            {editing ? (
+              <>
+                <Button variant="ghost" onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => void save()} disabled={!draft.trim()}>
+                  Save changes
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={startEdit} aria-label="Edit checkpoint">
+                  <Pencil aria-hidden /> Edit
+                </Button>
+                <Tooltip
+                  content={
+                    <>
+                      See exactly what will open <Kbd>R</Kbd>
+                    </>
+                  }
+                >
+                  <Button variant="secondary" onClick={() => onPreview(false)}>
+                    Preview restore
+                  </Button>
+                </Tooltip>
+                <Tooltip
+                  content={
+                    <>
+                      Reopen everything <Kbd>↵</Kbd>
+                    </>
+                  }
+                >
+                  <Button onClick={() => onPreview(true)}>
+                    <Play aria-hidden /> Resume
+                  </Button>
+                </Tooltip>
+              </>
+            )}
           </div>
         </div>
 
@@ -334,7 +360,18 @@ function CheckpointDetail({
               )}
             </Badge>
           </h2>
-          <p className="selectable text-[14px] leading-relaxed">{cp.summary}</p>
+          {editing ? (
+            <textarea
+              aria-label="What you were doing"
+              value={draft}
+              maxLength={2000}
+              rows={4}
+              onChange={(e) => setDraft(e.target.value)}
+              className="selectable w-full resize-y rounded-md border border-border bg-background p-2 text-[14px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            />
+          ) : (
+            <p className="selectable text-[14px] leading-relaxed">{cp.summary}</p>
+          )}
           {cp.summarySource === 'template' &&
             ai.data?.activeSource === 'template' &&
             ai.data.download?.active && (
@@ -365,12 +402,15 @@ function CheckpointDetail({
               <ul className="rounded-lg border border-border">
                 {rows.map(({ ref }, i) => {
                   const l = refLabel(ref)
+                  const idx = cp.resources.indexOf(ref)
+                  const gone = removed.has(idx)
                   return (
                     <li
                       key={i}
                       className={cn(
                         'flex items-center gap-2.5 px-3 py-2',
                         i > 0 && 'border-t border-border',
+                        gone && 'opacity-50 [&_p]:line-through',
                       )}
                     >
                       <ResourceIcon kind={ref.kind} />
@@ -382,7 +422,24 @@ function CheckpointDetail({
                           </p>
                         )}
                       </div>
-                      {ref.focused && <Badge tone="accent">in focus</Badge>}
+                      {ref.focused && !editing && <Badge tone="accent">in focus</Badge>}
+                      {editing && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          aria-label={gone ? `Keep ${l.primary}` : `Remove ${l.primary}`}
+                          onClick={() =>
+                            setRemoved((r) => {
+                              const n = new Set(r)
+                              if (n.has(idx)) n.delete(idx)
+                              else n.add(idx)
+                              return n
+                            })
+                          }
+                        >
+                          {gone ? 'Undo' : <X aria-hidden />}
+                        </Button>
+                      )}
                     </li>
                   )
                 })}
@@ -465,18 +522,24 @@ function ReassignMenu({
 
 function ProjectMenu({
   project,
-  onRename,
+  onEdit,
   navigate,
 }: {
   project: Project
-  onRename: () => void
+  onEdit: () => void
   navigate: (r: string) => void
 }) {
-  const projects = useIpc('projects:list')
-  const [splitting, setSplitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const item =
+    'flex cursor-default items-center gap-2 rounded px-2 py-1.5 text-[13px] outline-none data-[highlighted]:bg-selected'
   return (
     <>
-      <SplitDialog project={project} open={splitting} onOpenChange={setSplitting} />
+      <DeleteProjectDialog
+        project={project}
+        open={deleting}
+        onOpenChange={setDeleting}
+        onDeleted={() => navigate('/')}
+      />
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <Button
@@ -494,54 +557,22 @@ function ProjectMenu({
             sideOffset={4}
             className="z-50 min-w-52 rounded-lg border border-border bg-background p-1 shadow-xl"
           >
-            <DropdownMenu.Item
-              onSelect={onRename}
-              className="flex cursor-default items-center gap-2 rounded px-2 py-1.5 text-[13px] outline-none data-[highlighted]:bg-selected"
-            >
-              <Pencil className="size-3.5" aria-hidden /> Rename
-            </DropdownMenu.Item>
-            <DropdownMenu.Sub>
-              <DropdownMenu.SubTrigger className="cursor-default rounded px-2 py-1.5 text-[13px] outline-none data-[highlighted]:bg-selected">
-                Merge into…
-              </DropdownMenu.SubTrigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.SubContent className="z-50 min-w-48 rounded-lg border border-border bg-background p-1 shadow-xl">
-                  {projects.data
-                    ?.filter((p) => p.id !== project.id)
-                    .map((p) => (
-                      <DropdownMenu.Item
-                        key={p.id}
-                        onSelect={async () => {
-                          await api('projects:merge', { sourceId: project.id, targetId: p.id })
-                          navigate(`/project/${p.id}`)
-                        }}
-                        className="cursor-default rounded px-2 py-1.5 text-[13px] outline-none data-[highlighted]:bg-selected"
-                      >
-                        {p.name}
-                      </DropdownMenu.Item>
-                    ))}
-                </DropdownMenu.SubContent>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Sub>
-            <DropdownMenu.Item
-              onSelect={() => setSplitting(true)}
-              className="cursor-default rounded px-2 py-1.5 text-[13px] outline-none data-[highlighted]:bg-selected"
-            >
-              Split…
+            <DropdownMenu.Item onSelect={onEdit} className={item}>
+              <Pencil className="size-3.5" aria-hidden /> Edit project…
             </DropdownMenu.Item>
             <DropdownMenu.Item
               onSelect={async () => {
                 await api('projects:archive', { id: project.id, archived: true })
                 navigate('/')
               }}
-              className="cursor-default rounded px-2 py-1.5 text-[13px] outline-none data-[highlighted]:bg-selected"
+              className={item}
             >
-              Archive
+              <Archive className="size-3.5" aria-hidden /> Archive
             </DropdownMenu.Item>
             <DropdownMenu.Separator className="my-1 h-px bg-border" />
-            <DropdownMenu.Label className="px-2 py-1 text-[11px] text-muted-foreground">
-              Signals: {project.signals.length ? project.signals.join(', ') : 'none yet'}
-            </DropdownMenu.Label>
+            <DropdownMenu.Item onSelect={() => setDeleting(true)} className={`${item} text-danger`}>
+              <Trash2 className="size-3.5" aria-hidden /> Delete project…
+            </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>

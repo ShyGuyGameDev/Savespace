@@ -340,6 +340,25 @@ export const SCRIPTS = {
   return JSON.stringify({ status: 'opened' });
 }`,
   }),
+  'chromium.focus-tab': T({
+    id: 'chromium.focus-tab',
+    description:
+      'Focuses one specific existing tab (window index, tab index), only if it still shows the expected URL.',
+    target: 'com.google.Chrome',
+    verbs: ['read', 'activate', 'focus-window', 'focus-tab'],
+    source: `function run(argv) {
+  const app = Application(argv[0]);
+  const w = app.windows()[Number(argv[1])];
+  if (!w || w.mode() !== 'normal') return JSON.stringify({ status: 'missing' });
+  const tabs = w.tabs();
+  const j = Number(argv[2]);
+  if (!tabs[j] || tabs[j].url() !== argv[3]) return JSON.stringify({ status: 'missing' });
+  w.activeTabIndex = j + 1;
+  w.index = 1;
+  app.activate();
+  return JSON.stringify({ status: 'already-open' });
+}`,
+  }),
   'chromium.has-url': T({
     id: 'chromium.has-url',
     description: 'Returns whether any normal window has a tab showing the URL.',

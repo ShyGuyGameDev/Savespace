@@ -21,6 +21,20 @@ let ctx: ReturnType<typeof tempDb>
 afterEach(() => ctx?.cleanup())
 
 describe('computeSuggestions', () => {
+  it('never proposes merges or splits (only new projects)', () => {
+    const projects = [
+      { ...base, id: 'a', name: 'A', signals: ['repo:/a'] },
+      { ...base, id: 'b', name: 'B', signals: ['repo:/b'] },
+    ]
+    const events = [0, 30, 60, 90].flatMap((m) => [
+      ev(m, ['repo:/a'], 'a'),
+      ev(m + 2, ['repo:/b'], 'b'),
+    ])
+    expect(computeSuggestions(events, projects, HOME).every((s) => s.kind === 'new-project')).toBe(
+      true,
+    )
+  })
+
   it('proposes a project from a recurring repo with co-occurring tools', () => {
     const events = [
       ev(0, ['repo:/Users/me/code/atlas']),
@@ -53,29 +67,6 @@ describe('computeSuggestions', () => {
         HOME,
       ),
     ).toEqual([])
-  })
-
-  it('proposes merging two projects always used together', () => {
-    const projects = [
-      { ...base, id: 'a', name: 'Atlas API', signals: ['repo:/a'] },
-      { ...base, id: 'b', name: 'Atlas Web', signals: ['repo:/b'] },
-    ]
-    const events = [0, 30, 60, 90].flatMap((m) => [
-      ev(m, ['repo:/a'], 'a'),
-      ev(m + 2, ['repo:/b'], 'b'),
-    ])
-    const s = computeSuggestions(events, projects, HOME)
-    expect(s.find((x) => x.kind === 'merge')?.targetProjectIds.sort()).toEqual(['a', 'b'])
-  })
-
-  it('proposes splitting a project with two disjoint halves', () => {
-    const projects = [{ ...base, id: 'p', name: 'Everything', signals: ['repo:/x', 'repo:/y'] }]
-    const events = [
-      ...[0, 30, 60].map((m) => ev(m, ['repo:/x'], 'p')),
-      ...[300, 330, 360, 390].map((m) => ev(m, ['repo:/y'], 'p')),
-    ]
-    const split = computeSuggestions(events, projects, HOME).find((x) => x.kind === 'split')
-    expect(split).toMatchObject({ targetProjectIds: ['p'], signals: ['repo:/x'], name: 'X' })
   })
 
   it('names suggestions readably', () => {

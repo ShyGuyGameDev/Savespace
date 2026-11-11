@@ -232,6 +232,49 @@ export const BINARIES: Record<string, BinarySpec> = {
  * known at runtime (inside the app bundle), so it's registered once at startup.
  * Allowed shapes: `status` | `summarize <instructions> <prompt>`.
  */
+/**
+ * Opens a URL in a specific browser profile (account). Only the browser's own executable, only
+ * `--profile-directory=<Chromium profile folder>` plus one http(s) URL. If the browser is already
+ * running, the call hands the URL to it (new tab in that profile) and exits.
+ */
+const profileCliValidate = (args: string[]): string | null => {
+  if (args.length !== 2) return 'browser profile: exactly --profile-directory=<dir> <url>'
+  const m = args[0]!.match(/^--profile-directory=(.+)$/)
+  if (!m || !/^(Default|Profile \d{1,4}|Guest Profile)$/.test(m[1]!))
+    return 'browser profile: invalid profile folder'
+  if (!/^https?:\/\/[^\s]+$/i.test(args[1]!)) return 'browser profile: only http(s) URLs'
+  return null
+}
+const browserBin = (app: string, exe: string): string[] => [
+  `/Applications/${app}/Contents/MacOS/${exe}`,
+  `${homedir()}/Applications/${app}/Contents/MacOS/${exe}`,
+]
+BINARIES['chrome-profile'] = {
+  id: 'chrome-profile',
+  candidates: browserBin('Google Chrome.app', 'Google Chrome'),
+  validate: profileCliValidate,
+}
+BINARIES['brave-profile'] = {
+  id: 'brave-profile',
+  candidates: browserBin('Brave Browser.app', 'Brave Browser'),
+  validate: profileCliValidate,
+}
+BINARIES['edge-profile'] = {
+  id: 'edge-profile',
+  candidates: browserBin('Microsoft Edge.app', 'Microsoft Edge'),
+  validate: profileCliValidate,
+}
+BINARIES['vivaldi-profile'] = {
+  id: 'vivaldi-profile',
+  candidates: browserBin('Vivaldi.app', 'Vivaldi'),
+  validate: profileCliValidate,
+}
+BINARIES['chromium-profile'] = {
+  id: 'chromium-profile',
+  candidates: browserBin('Chromium.app', 'Chromium'),
+  validate: profileCliValidate,
+}
+
 BINARIES['apple-ai'] = {
   id: 'apple-ai',
   candidates: [],

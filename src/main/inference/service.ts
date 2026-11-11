@@ -79,17 +79,6 @@ export class InferenceService {
           this.store.reassignCheckpoint(cp.id, p.id)
       }
       this.store.audit('settings', `Confirmed new project “${p.name}”`, { signals: s.signals })
-    } else if (s.kind === 'merge') {
-      const [keep, fold] = s.targetProjectIds
-      if (!keep || !fold) throw new Error('Invalid merge suggestion')
-      this.store.mergeProjects(fold, keep)
-      if (name?.trim()) this.store.renameProject(keep, name)
-      this.store.audit('settings', `Merged projects`, { keep, fold })
-    } else {
-      const [target] = s.targetProjectIds
-      if (!target) throw new Error('Invalid split suggestion')
-      this.store.splitProject(target, name?.trim() || s.name, s.signals)
-      this.store.audit('settings', `Split project`, { target, signals: s.signals })
     }
     this.store.setSuggestionStatus(id, 'accepted')
   }

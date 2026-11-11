@@ -5,16 +5,19 @@ import { signalsForRef } from '../capture/signals'
 import type { Store } from '../db/store'
 import { matchProject } from '../inference/match'
 import type { Summarizer } from '../summarizer/types'
-import { scopeRefs } from './scope'
+import { describeRef } from '../db/store'
+import { selectRelevant, type Ask } from './relevance'
 
 export interface CheckpointServiceDeps {
   store: Store
   engine: CaptureEngine
   summarizer: Summarizer
+  /** Local AI used to judge which in-use items relate to the project (optional). */
+  ask?: Ask
   onCreated?: (cp: Checkpoint) => void
 }
 
-/** Creates checkpoints: capture → privacy filter (in engine) → project scope → summary → store. */
+/** Creates checkpoints: capture → privacy filter → in-use + AI relevance → summary → store. */
 export class CheckpointService {
   private lastFingerprint = new Map<string, { fp: string; at: number }>()
 
@@ -42,13 +45,25 @@ export class CheckpointService {
     }
     const project = pid ? store.getProject(pid) : null
     const since = (project?.lastCheckpointAt ?? 0) || Date.now() - 4 * 3600_000
-    const usedApps = new Set(
-      store
-        .recentActivity(Math.max(since, Date.now() - 8 * 3600_000))
-        .filter((e) => !project || e.projectId === project.id || e.projectId === null)
-        .map((e) => e.bundleId),
-    )
-    const refs = scopeRefs(snap.refs, project, usedApps, engine.git.repoRootOf)
+    // Only what was actually in use during this session, and (judged by the local AI) related to the work.
+    const events = store
+      // "In use" = used in the last 2 hours, or since the previous checkpoint if longer (max 8 h).
+      .recentActivity(
+        Math.max(Math.min(since, Date.now() - 2 * 3600_000), Date.now() - 8 * 3600_000),
+      )
+      .filter((e) => !project || e.projectId === project.id || e.projectId === null)
+    const relevance = await selectRelevant({
+      refs: snap.refs,
+      project,
+      events,
+      repoRootOf: engine.git.repoRootOf,
+      ask: this.d.ask,
+      appName: (b) =>
+        snap.system.apps.find((a) => a.bundleId === b)?.name ??
+        events.find((e) => e.bundleId === b)?.appName ??
+        b,
+    })
+    const refs = relevance.kept
 
     const fp = refs
       .filter((r) => r.kind !== 'windowFrame')
@@ -86,8 +101,24 @@ export class CheckpointService {
       resources: refs,
       createdAt: snap.at,
     })
-    if (summary.source === 'ollama')
-      store.audit('summarize', 'Summary written by local Ollama model', { checkpointId: cp.id })
+    if (summary.source !== 'template')
+      store.audit(
+        'summarize',
+        `Summary written by ${summary.source === 'apple' ? 'Apple on-device AI' : 'the downloaded local model'}`,
+        { checkpointId: cp.id },
+      )
+    if (relevance.dropped.length) {
+      const unrelated = relevance.dropped.filter((d) => d.why === 'unrelated')
+      const unused = relevance.dropped.length - unrelated.length
+      store.audit(
+        'capture',
+        `Left out ${relevance.dropped.length} open item${relevance.dropped.length === 1 ? '' : 's'}: ${unused} not used this session, ${unrelated.length} not related${relevance.judgedBy ? ` (judged by ${relevance.judgedBy === 'apple' ? 'Apple on-device AI' : 'the downloaded model'})` : ''}`,
+        {
+          checkpointId: cp.id,
+          leftOut: relevance.dropped.map((d) => ({ why: d.why, item: describeRef(d.ref) })),
+        },
+      )
+    }
     this.lastFingerprint.set(key, { fp, at: Date.now() })
     this.d.onCreated?.(cp)
     return cp

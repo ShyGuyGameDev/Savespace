@@ -51,6 +51,22 @@ export class AppleSummarizer {
     return status
   }
 
+  /** Asks Apple's on-device model a question. Returns null if it can't be used right now. */
+  async ask(instructions: string, prompt: string): Promise<string | null> {
+    if (!(await this.status()).available) return null
+    try {
+      const r = await this.exec.run(
+        'apple-ai',
+        ['summarize', instructions.slice(0, 4000), prompt.slice(0, 12000)],
+        { timeoutMs: 45_000 },
+      )
+      const j = JSON.parse(r.stdout || '{}') as { text?: string }
+      return j.text ?? null
+    } catch {
+      return null
+    }
+  }
+
   /** Returns null when Apple's model can't be used right now (caller falls back). */
   async summarize(input: SummaryInput): Promise<string | null> {
     if (!(await this.status()).available) return null
@@ -75,6 +91,7 @@ export class AutoSummarizer {
     private readonly apple: AppleSummarizer,
     private readonly downloaded: {
       summarize(input: SummaryInput): Promise<{ text: string; source: 'ollama' | 'template' }>
+      ask?(instructions: string, prompt: string): Promise<string | null>
     },
     private readonly settings: () => {
       aiEnabled: boolean
@@ -92,5 +109,21 @@ export class AutoSummarizer {
     if (s.aiProvider === 'apple')
       return { text: templateSummary(input), source: 'template' as const }
     return this.downloaded.summarize(input)
+  }
+
+  /** Asks a question using the same source order as summaries. Null = no AI available right now. */
+  async ask(
+    instructions: string,
+    prompt: string,
+  ): Promise<{ text: string; source: 'apple' | 'ollama' } | null> {
+    const s = this.settings()
+    if (!s.aiEnabled) return null
+    if (s.aiProvider !== 'downloaded') {
+      const t = await this.apple.ask(instructions, prompt)
+      if (t) return { text: t, source: 'apple' }
+    }
+    if (s.aiProvider === 'apple' || !this.downloaded.ask) return null
+    const t = await this.downloaded.ask(instructions, prompt)
+    return t ? { text: t, source: 'ollama' } : null
   }
 }

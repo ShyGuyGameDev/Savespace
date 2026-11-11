@@ -50,6 +50,13 @@ export const ResourceRefSchema = z.discriminatedUnion('kind', [
     ...base,
     url: httpUrl,
     browserWindow: z.number().int().optional(),
+    /** Browser profile (account) the tab was open in, e.g. { dir: 'Profile 1', name: 'Work' }. */
+    profile: z
+      .object({
+        dir: z.string().regex(/^(Default|Profile \d{1,4}|Guest Profile)$/),
+        name: z.string().max(100),
+      })
+      .optional(),
   }),
   z.object({
     kind: z.literal('draft'),
@@ -185,7 +192,7 @@ export type SummarySource = Checkpoint['summarySource']
 
 export const SuggestionSchema = z.object({
   id: z.string(),
-  kind: z.enum(['new-project', 'merge', 'split']),
+  kind: z.literal('new-project'),
   name: z.string(),
   signals: z.array(z.string()),
   evidence: z.array(z.string()),

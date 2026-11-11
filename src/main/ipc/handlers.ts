@@ -41,15 +41,15 @@ export function createHandlers(
       changed('projects')
       return ok
     },
-    'projects:merge': ({ sourceId, targetId }) => {
-      store.mergeProjects(sourceId, targetId)
+    'projects:update': ({ id, ...patch }) => {
+      const p = store.updateProject(id, patch)
+      changed('projects')
+      return p
+    },
+    'projects:delete': ({ id }) => {
+      store.deleteProject(id)
       changed('all')
       return ok
-    },
-    'projects:split': ({ id, newName, signals }) => {
-      const p = store.splitProject(id, newName, signals)
-      changed('all')
-      return p
     },
 
     'checkpoints:list': ({ projectId, limit }) => store.listCheckpoints({ projectId, limit }),
@@ -57,6 +57,11 @@ export function createHandlers(
     'checkpoints:create': async (input) => {
       const cp = await ctx.checkpoints.create('manual', input?.projectId ?? undefined)
       if (!cp) throw new Error('Nothing to save right now')
+      changed('checkpoints')
+      return cp
+    },
+    'checkpoints:update': ({ id, ...patch }) => {
+      const cp = store.updateCheckpoint(id, patch)
       changed('checkpoints')
       return cp
     },

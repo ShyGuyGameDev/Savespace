@@ -38,7 +38,7 @@ Research date: 2026-11-10. Sources are linked inline. Where a source is a third-
 
 - Superhuman's UX drives toward a clear "done" state, keyboard-first ([consumerstartups: Superhuman of X](https://consumerstartups.substack.com/p/superhuman-of-x)).
 
-**Applied:** The Suggestions inbox drives toward "Inbox zero": each suggestion has `c` confirm, `e` rename, `m` merge, `s` split, and `x` dismiss. When it's empty, it shows a calm "All caught up" state.
+**Applied:** The Suggestions inbox drives toward "Inbox zero": each suggestion has `c` confirm, `e` rename, and `x` dismiss. When it's empty, it shows a calm "All caught up" state.
 
 ### Notion Calendar (ex-Cron)
 

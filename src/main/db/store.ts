@@ -165,51 +165,42 @@ export class Store {
       .run()
   }
 
-  /** Moves all checkpoints and signals of `sourceId` into `targetId`, then deletes the source. */
-  mergeProjects(sourceId: string, targetId: string): void {
-    if (sourceId === targetId) throw new Error('Cannot merge a project into itself')
-    const src = this.getProject(sourceId)
-    const dst = this.getProject(targetId)
-    if (!src || !dst) throw new Error('Project not found')
-    this.db.transaction((tx) => {
-      tx.update(t.checkpoints)
-        .set({ projectId: targetId })
-        .where(eq(t.checkpoints.projectId, sourceId))
-        .run()
-      tx.update(t.activityEvents)
-        .set({ projectId: targetId })
-        .where(eq(t.activityEvents.projectId, sourceId))
-        .run()
-      tx.update(t.projects)
-        .set({
-          signals: [...new Set([...dst.signals, ...src.signals])],
-          updatedAt: Date.now(),
-          lastCheckpointAt: Math.max(dst.lastCheckpointAt ?? 0, src.lastCheckpointAt ?? 0) || null,
-        })
-        .where(eq(t.projects.id, targetId))
-        .run()
-      tx.delete(t.projects).where(eq(t.projects.id, sourceId)).run()
+  /** Edits a project's name, colour and/or what belongs to it (its signals). */
+  updateProject(id: string, patch: { name?: string; color?: string; signals?: string[] }): Project {
+    const cur = this.getProject(id)
+    if (!cur) throw new Error('Project not found')
+    this.db
+      .update(t.projects)
+      .set({
+        name: patch.name?.trim() || cur.name,
+        color: patch.color ?? cur.color,
+        signals: patch.signals
+          ? [...new Set(patch.signals.map((x) => x.trim()).filter(Boolean))]
+          : cur.signals,
+        updatedAt: Date.now(),
+      })
+      .where(eq(t.projects.id, id))
+      .run()
+    this.audit('settings', `Edited project “${patch.name?.trim() || cur.name}”`, {
+      id,
+      fields: Object.keys(patch),
     })
+    return this.getProject(id)!
   }
 
-  /** Creates a new project from a subset of an existing project's signals; matching checkpoints move with them. */
-  splitProject(id: string, newName: string, signals: string[]): Project {
-    const src = this.getProject(id)
-    if (!src) throw new Error('Project not found')
-    const moving = new Set(signals)
-    const created = this.createProject(newName, signals)
-    this.setProjectSignals(
-      id,
-      src.signals.filter((s) => !moving.has(s)),
-    )
-    // Reassign checkpoints whose resources match the moved signals better than the remaining ones.
-    for (const cp of this.listCheckpoints({ projectId: id, limit: 10_000 })) {
-      const sigs = new Set(cp.resources.flatMap((r) => resourceSignals(r)))
-      const hitsMoved = [...moving].filter((s) => sigs.has(s)).length
-      const hitsKept = src.signals.filter((s) => !moving.has(s) && sigs.has(s)).length
-      if (hitsMoved > hitsKept) this.reassignCheckpoint(cp.id, created.id)
-    }
-    return created
+  /** Deletes a project. Its checkpoints are kept and become unassigned. */
+  deleteProject(id: string): void {
+    const cur = this.getProject(id)
+    if (!cur) return
+    this.db.transaction((tx) => {
+      tx.update(t.checkpoints).set({ projectId: null }).where(eq(t.checkpoints.projectId, id)).run()
+      tx.update(t.activityEvents)
+        .set({ projectId: null })
+        .where(eq(t.activityEvents.projectId, id))
+        .run()
+      tx.delete(t.projects).where(eq(t.projects.id, id)).run()
+    })
+    this.audit('settings', `Deleted project “${cur.name}” (its checkpoints were kept, unassigned)`)
   }
 
   // ---------- checkpoints ----------
@@ -330,6 +321,35 @@ export class Store {
     }
   }
 
+  /** Edits a checkpoint: its "What you were doing" text and/or removes saved items (by index). */
+  updateCheckpoint(id: string, patch: { summary?: string; removeItems?: number[] }): Checkpoint {
+    const cp = this.getCheckpoint(id)
+    if (!cp) throw new Error('Checkpoint not found')
+    this.db.transaction((tx) => {
+      if (patch.summary !== undefined)
+        tx.update(t.checkpoints)
+          .set({ summary: patch.summary.trim() })
+          .where(eq(t.checkpoints.id, id))
+          .run()
+      if (patch.removeItems?.length) {
+        const keep = cp.resources.filter((_, i) => !patch.removeItems!.includes(i))
+        tx.delete(t.resources).where(eq(t.resources.checkpointId, id)).run()
+        keep.forEach((r, position) =>
+          tx
+            .insert(t.resources)
+            .values({ checkpointId: id, position, kind: r.kind, app: r.app, data: r })
+            .run(),
+        )
+      }
+    })
+    this.audit(
+      'capture',
+      `Edited checkpoint${patch.summary !== undefined ? ' summary' : ''}${patch.removeItems?.length ? ` (removed ${patch.removeItems.length} item${patch.removeItems.length === 1 ? '' : 's'})` : ''}`,
+      { checkpointId: id },
+    )
+    return this.getCheckpoint(id)!
+  }
+
   deleteCheckpoint(id: string): void {
     this.db.delete(t.checkpoints).where(eq(t.checkpoints.id, id)).run()
   }
@@ -381,13 +401,21 @@ export class Store {
   }
 
   listSuggestions(status: Suggestion['status'] = 'pending'): Suggestion[] {
-    return this.db
-      .select()
-      .from(t.projectSuggestions)
-      .where(eq(t.projectSuggestions.status, status))
-      .orderBy(desc(t.projectSuggestions.score))
-      .all()
-      .map((r) => this.toSuggestion(r))
+    return (
+      this.db
+        .select()
+        .from(t.projectSuggestions)
+        // Only "new project" suggestions exist now (older merge/split rows are ignored).
+        .where(
+          and(
+            eq(t.projectSuggestions.status, status),
+            eq(t.projectSuggestions.kind, 'new-project'),
+          ),
+        )
+        .orderBy(desc(t.projectSuggestions.score))
+        .all()
+        .map((r) => this.toSuggestion(r))
+    )
   }
 
   getSuggestion(id: string): Suggestion | null {

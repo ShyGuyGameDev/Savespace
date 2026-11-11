@@ -129,6 +129,16 @@ describe('capture engine', () => {
   it('creates a project-scoped checkpoint with a template summary', async () => {
     ctx = tempDb()
     const p = ctx.store.createProject('WP', ['repo:/Users/me/code/wp', 'host:acme.atlassian.net'])
+    // A few minutes of real work: VS Code and the Jira tab were used; YouTube sat in a background tab.
+    for (let i = 0; i < 4; i++)
+      ctx.store.addActivity({
+        at: Date.now() - (5 - i) * 60_000,
+        bundleId: i % 2 ? 'com.google.Chrome' : 'com.microsoft.VSCode',
+        appName: 'x',
+        windowTitle: i % 2 ? 'WP-1' : 'a.ts — wp',
+        signals: [],
+        projectId: p.id,
+      })
     const svc = new CheckpointService({
       store: ctx.store,
       engine: makeEngine(),

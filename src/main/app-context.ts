@@ -141,12 +141,13 @@ export async function createContext(hooks: ContextHooks = {}): Promise<AppContex
     apple,
   )
   // Apple's on-device model first, then the downloaded model, then the plain summary.
-  const summarizer =
-    hooks.summarizer ?? new AutoSummarizer(apple, ollama, () => store.getSettings())
+  const auto = new AutoSummarizer(apple, ollama, () => store.getSettings())
+  const summarizer = hooks.summarizer ?? auto
   const checkpoints = new CheckpointService({
     store,
     engine,
     summarizer,
+    ask: (instructions, prompt) => auto.ask(instructions, prompt),
     onCreated: hooks.onCheckpoint,
   })
   const inference = new InferenceService(store, homedir(), engine.git.repoRootOf, {
