@@ -195,3 +195,64 @@ describe('native helper source', () => {
     expect(src).not.toMatch(/URLSession|Network|import Foundation\.URL/)
   })
 })
+
+describe('Automation "Ask" button', () => {
+  async function setup(running: boolean, reply: { stdout: string; stderr: string; code: number }) {
+    const { Permissions } = await import('../../src/main/privacy/permissions')
+    const calls: string[] = []
+    let isRunning = running
+    const exec = new SafeExec(
+      async (file, args) => {
+        const src = args[3] ?? ''
+        calls.push(
+          file.endsWith('open')
+            ? `open ${args.join(' ')}`
+            : src.includes('running()') && !src.includes('windows()')
+              ? 'running?'
+              : 'probe',
+        )
+        if (file.endsWith('open')) {
+          isRunning = true
+          return { stdout: '', stderr: '', code: 0 }
+        }
+        if (src.includes('installed: true'))
+          return {
+            stdout: JSON.stringify({ installed: true, running: isRunning }),
+            stderr: '',
+            code: 0,
+          }
+        return reply
+      },
+      { resolve: (id) => `/bin/${id}` },
+    )
+    return { p: new Permissions(exec), calls }
+  }
+  const noSleep = async () => {}
+
+  it('opens a closed app in the background first, then asks', async () => {
+    const { p, calls } = await setup(false, {
+      stdout: '{"running":true,"windows":0}',
+      stderr: '',
+      code: 0,
+    })
+    const r = await p.requestAutomation('com.apple.Safari', noSleep)
+    expect(calls).toContain('open -g -b com.apple.Safari --')
+    expect(calls.at(-1)).toBe('probe')
+    expect(r.automation['com.apple.Safari']).toBe('granted')
+    expect(r.lastRequest?.outcome).toBe('granted')
+  })
+
+  it('explains a "Don’t Allow" answer and a missed question', async () => {
+    const denied = await setup(true, {
+      stdout: '',
+      stderr: 'Not authorized to send Apple events to Mail. (-1743)',
+      code: 1,
+    })
+    const r1 = await denied.p.requestAutomation('com.apple.mail', noSleep)
+    expect(r1.automation['com.apple.mail']).toBe('denied')
+    expect(r1.lastRequest?.message).toMatch(/Privacy & Security → Automation/)
+    const slow = await setup(true, { stdout: '', stderr: '', code: 124 })
+    const r2 = await slow.p.requestAutomation('com.apple.Notes', noSleep)
+    expect(r2.lastRequest?.outcome).toBe('no-answer')
+  })
+})

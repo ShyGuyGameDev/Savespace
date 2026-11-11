@@ -219,6 +219,7 @@ function AutomationStep() {
   const { data: adapters } = useIpc('adapters:list')
   const installed = new Set((adapters ?? []).filter((a) => a.installed).flatMap((a) => a.bundleIds))
   const [busy, setBusy] = useState<string | null>(null)
+  const [notes, setNotes] = useState<Record<string, { ok: boolean; text: string }>>({})
   const targets = [
     ['com.apple.systemevents', 'System Events', 'List your open windows.'],
     ['com.google.Chrome', 'Google Chrome', 'Read tab addresses (never incognito).'],
@@ -232,8 +233,12 @@ function AutomationStep() {
     <Hero icon={<Bot />} title="Ask your apps what’s open">
       <p>
         macOS asks you once per app before {APP_NAME} may talk to it (
-        <strong className="text-foreground">Automation</strong>). Each request is read-only. The app
-        must be open for macOS to ask; you can also do this later, the first time it’s needed.
+        <strong className="text-foreground">Automation</strong>). Each request is read-only.
+      </p>
+      <p className="rounded-lg border border-border bg-muted/50 p-3 text-[13px] text-foreground">
+        <strong>Closed apps will be opened when you ask.</strong> macOS can only ask while an app is
+        running, so clicking Ask opens a closed app quietly in the background first. You can also
+        skip this step: macOS will ask the first time {APP_NAME} needs each app.
       </p>
       <ul className="divide-y divide-border rounded-lg border border-border text-[13px]">
         {targets
@@ -251,6 +256,17 @@ function AutomationStep() {
                 <div className="flex-1">
                   <p className="font-medium text-foreground">{name}</p>
                   <p className="text-[12px]">{why}</p>
+                  {notes[id] && state !== 'granted' && (
+                    <p
+                      className={cn(
+                        'mt-0.5 text-[12px]',
+                        notes[id]!.ok ? 'text-success' : 'text-warning',
+                      )}
+                      role="status"
+                    >
+                      {notes[id]!.text}
+                    </p>
+                  )}
                 </div>
                 {state === 'granted' ? (
                   <Badge tone="success">Allowed</Badge>
@@ -269,12 +285,24 @@ function AutomationStep() {
                     disabled={busy === id}
                     onClick={async () => {
                       setBusy(id)
-                      await api('permissions:requestAutomation', { bundleId: id })
+                      try {
+                        const r = await api('permissions:requestAutomation', { bundleId: id })
+                        if (r.lastRequest)
+                          setNotes((n) => ({
+                            ...n,
+                            [id]: {
+                              ok: r.lastRequest!.outcome === 'granted',
+                              text: r.lastRequest!.message,
+                            },
+                          }))
+                      } catch (e) {
+                        setNotes((n) => ({ ...n, [id]: { ok: false, text: (e as Error).message } }))
+                      }
                       await refetch()
                       setBusy(null)
                     }}
                   >
-                    {busy === id ? 'Asking…' : 'Ask'}
+                    {busy === id ? 'Waiting for your answer…' : 'Ask'}
                   </Button>
                 )}
               </li>

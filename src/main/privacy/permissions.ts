@@ -100,23 +100,67 @@ export class Permissions {
    * Triggers (or re-checks) the Automation consent for one app with a harmless read-only probe.
    * Never launches the app: if it isn't running we report "not-determined".
    */
-  async requestAutomation(bundleId: string): Promise<PermissionsStatus> {
-    if (!AUTOMATION_TARGETS.some((t) => t.bundleId === bundleId))
-      throw new Error('Unknown automation target')
+  /**
+   * Triggers (or re-checks) the Automation consent for one app with a harmless read-only probe.
+   * Called only when the user clicks "Ask". If the app is closed, it is opened in the background
+   * first (macOS can only ask about a running app). Waits up to 2 minutes for the user's answer.
+   */
+  async requestAutomation(
+    bundleId: string,
+    sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
+  ): Promise<PermissionsStatus> {
+    const target = AUTOMATION_TARGETS.find((t) => t.bundleId === bundleId)
+    if (!target) throw new Error('Unknown automation target')
+    const done = (
+      outcome: NonNullable<PermissionsStatus['lastRequest']>['outcome'],
+      message: string,
+    ): PermissionsStatus => ({
+      ...this.status(),
+      lastRequest: { bundleId, outcome, message },
+    })
     try {
-      if (bundleId === 'com.apple.systemevents') await this.exec.script('system-events.probe')
-      else {
-        const r = await this.exec.script<{ running: boolean }>('app.probe', [bundleId])
-        if (!r.running) return this.status()
+      if (bundleId === 'com.apple.systemevents') {
+        await this.exec.script('system-events.probe', [], 120_000)
+      } else {
+        const state = await this.exec.script<{ installed: boolean; running: boolean }>(
+          'app.running',
+          [bundleId],
+        )
+        if (!state.installed) {
+          this.automation[bundleId] = 'unknown'
+          return done('not-installed', `${target.name} isn’t installed on this Mac.`)
+        }
+        if (!state.running) {
+          await this.exec.launchApp(bundleId, { background: true })
+          for (let i = 0; i < 40; i++) {
+            await sleep(250)
+            if ((await this.exec.script<{ running: boolean }>('app.running', [bundleId])).running)
+              break
+          }
+          await sleep(800) // let the app finish starting before macOS shows the question
+        }
+        const r = await this.exec.script<{ running: boolean }>('app.probe', [bundleId], 120_000)
+        if (!r.running)
+          return done('error', `${target.name} didn’t open. Open it yourself and click Ask again.`)
       }
       this.automation[bundleId] = 'granted'
+      return done('granted', `${target.name} is allowed.`)
     } catch (e) {
-      if (e instanceof SafeExecError && e.code === 'not-authorized')
+      if (e instanceof SafeExecError && e.code === 'not-authorized') {
         this.automation[bundleId] = 'denied'
-      else if (e instanceof SafeExecError && /-2700|can.t be found/i.test(e.message))
-        this.automation[bundleId] = 'unknown'
+        return done(
+          'denied',
+          `You chose Don’t Allow. To change it: System Settings → Privacy & Security → Automation → Waypoint → turn on ${target.name}.`,
+        )
+      }
+      if (e instanceof SafeExecError && e.code === 'timeout') {
+        return done(
+          'no-answer',
+          'No answer yet. Click Ask again and choose Allow in the box macOS shows.',
+        )
+      }
+      return done('error', `Couldn’t ask ${target.name}: ${(e as Error).message.slice(0, 160)}`)
     }
-    return this.status()
   }
 
   async openSettings(pane: keyof typeof SETTINGS_PANES): Promise<void> {

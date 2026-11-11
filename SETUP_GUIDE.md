@@ -139,15 +139,17 @@ You can see these screens again later: **Settings → Show the welcome & permiss
 
 **What it's for:** asking individual apps read-only questions, such as Chrome ("which tabs are open?"), Mail ("which draft is selected?"), Notes, Calendar, Finder, and Terminal. macOS asks **once per app**.
 
-1. **Open the apps you use** first (macOS can only ask about apps that are running): for example Google Chrome, Mail, Notes, Calendar.
-2. On the welcome screen's Automation step, click **Ask** next to each app.
-3. macOS shows: _"Waypoint" wants access to control "Google Chrome"…_ (when running from Terminal it says **"Electron"**). Click **Allow**.
-4. Repeat for each app you want.
+> **Note: closed apps will be opened when you ask.** macOS can only ask for permission while an app is running. So if an app is closed when you click **Ask**, Waypoint opens it quietly in the background first (it won't jump in front of you), then macOS asks. The app stays open afterwards; quit it whenever you like.
+
+1. On the welcome screen's Automation step, click **Ask** next to each app you use (for example Google Chrome, Safari, Mail, Notes, Calendar). The button says **Waiting for your answer…** while macOS shows its question.
+2. macOS shows: _"Waypoint" wants access to control "Google Chrome"…_ (when running from Terminal it says **"Electron"**). Click **Allow**. You have up to 2 minutes.
+3. Repeat for each app you want. A short note under each app tells you what happened.
 
 ✅ **Worked if:** each row shows a green **Allowed** badge. You can also check **System Settings → Privacy & Security → Automation → Waypoint (or Electron)**: each app has its switch on.
 
 ❗ **If you clicked "Don't Allow" by mistake:** open **System Settings → Privacy & Security → Automation**, find **Waypoint** (or **Electron**), and turn on the switch for that app. The Privacy page in Waypoint has an **Open Settings** button that takes you there.
-❗ **If you skip this step,** macOS will ask the first time Waypoint needs each app, so you can also just allow them as they come up.
+❗ **"No answer yet":** the question was missed or took longer than 2 minutes. Click **Ask** again and choose **Allow**.
+❗ **If you skip this step,** nothing gets opened. macOS asks the first time Waypoint needs each app while you have it open, and you can allow it then.
 ❗ **Safari:** tab reading is **off by default** because Safari can't tell Waypoint which windows are private. Turn it on in **Settings → Capture → Capture Safari tabs** if you want it. Reopening pages in Safari works either way.
 
 ---

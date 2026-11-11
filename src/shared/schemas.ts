@@ -226,6 +226,14 @@ export const PermissionStateSchema = z.enum(['granted', 'denied', 'not-determine
 export const PermissionsStatusSchema = z.object({
   accessibility: PermissionStateSchema,
   automation: z.record(z.string(), PermissionStateSchema),
+  /** Outcome of the most recent "Ask" click, so the UI can explain what happened. */
+  lastRequest: z
+    .object({
+      bundleId: z.string(),
+      outcome: z.enum(['granted', 'denied', 'not-installed', 'no-answer', 'error']),
+      message: z.string(),
+    })
+    .optional(),
 })
 export type PermissionsStatus = z.infer<typeof PermissionsStatusSchema>
 
