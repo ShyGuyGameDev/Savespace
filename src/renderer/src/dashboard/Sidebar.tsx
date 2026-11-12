@@ -1,4 +1,4 @@
-import { Boxes, CircleDot, Inbox, Plus, Settings, Shield } from 'lucide-react'
+import { Boxes, Inbox, Plus, Settings, Shield } from 'lucide-react'
 import { APP_NAME } from '@shared/constants'
 import { Badge } from '@/components/ui/misc'
 import { api, useIpc } from '@/lib/bridge'
@@ -128,22 +128,14 @@ export function Sidebar({ route, navigate }: { route: string; navigate: (r: stri
         />
       </div>
 
-      <div
-        className="no-drag mt-2 rounded-lg px-2 py-2 text-[12px] text-muted-foreground"
-        aria-live="polite"
-      >
-        <p className="flex items-center gap-1.5">
-          <CircleDot
-            className={cn(
-              'size-3',
-              settings.data?.captureEnabled ? 'text-success' : 'text-muted-foreground',
-            )}
-            aria-hidden
-          />
-          {settings.data?.captureEnabled ? 'Watching for context' : 'Capture paused'}
+      {settings.data?.captureEnabled && ctx.data?.projectName && (
+        <p
+          className="no-drag mt-2 truncate px-2 py-2 text-[12px] text-muted-foreground"
+          aria-live="polite"
+        >
+          Now: {ctx.data.projectName}
         </p>
-        {ctx.data?.projectName && <p className="mt-0.5 truncate">Now: {ctx.data.projectName}</p>}
-      </div>
+      )}
       <PromptDialog
         open={naming}
         onOpenChange={setNaming}

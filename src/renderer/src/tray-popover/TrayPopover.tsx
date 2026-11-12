@@ -6,7 +6,8 @@ import { Badge, Kbd } from '@/components/ui/misc'
 import { useCheckpointNow } from '@/lib/checkpoint'
 import { api, useIpc } from '@/lib/bridge'
 import { formatHotkey } from '@/lib/hotkeys'
-import { relativeTime } from '@/lib/utils'
+import { cn, relativeTime } from '@/lib/utils'
+import { useTracking } from '@/components/TrackingToggle'
 
 /** Menu-bar popover: current context, Checkpoint now, recent projects with Resume. */
 export function TrayPopover() {
@@ -16,6 +17,7 @@ export function TrayPopover() {
   const settings = useIpc('settings:get')
   const [msg, setMsg] = useState<string | null>(null)
   const { saving, save } = useCheckpointNow()
+  const tracking = useTracking()
   const open = async (route: string) => {
     await api('app:openDashboard', { route })
     void api('app:hideWindow')
@@ -37,16 +39,51 @@ export function TrayPopover() {
           {APP_NAME}
         </p>
         <p className="text-[14px] font-medium" aria-live="polite">
-          {ctx.data?.projectName
-            ? `You’re working on ${ctx.data.projectName}`
-            : settings.data?.captureEnabled
-              ? 'Not sure which project this is yet'
-              : 'Automatic capture is paused'}
+          {!tracking.on
+            ? 'Nothing is being tracked'
+            : ctx.data?.projectName
+              ? `You’re working on ${ctx.data.projectName}`
+              : 'Not sure which project this is yet'}
         </p>
-        {ctx.data?.frontApp && (
+        {tracking.on && ctx.data?.frontApp && (
           <p className="text-[12px] text-muted-foreground">In {ctx.data.frontApp}</p>
         )}
       </header>
+
+      {/* Tracking on/off: always spelled out, with one button to change it. */}
+      <div
+        className={cn(
+          'mb-3 flex items-center gap-2.5 rounded-lg border px-2.5 py-2',
+          tracking.on ? 'border-success/30 bg-success/10' : 'border-warning/40 bg-warning/10',
+        )}
+      >
+        <span
+          className={cn(
+            'flex size-7 shrink-0 items-center justify-center rounded-full',
+            tracking.on ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning',
+          )}
+          aria-hidden
+        >
+          <Power className="size-3.5" strokeWidth={2.5} />
+        </span>
+        <span className="min-w-0 flex-1" id="popover-tracking">
+          <span className="block text-[13px] font-semibold">
+            {tracking.on ? 'Tracking is on' : 'Tracking is paused'}
+          </span>
+          <span className="block text-[11px] text-muted-foreground">
+            {tracking.on ? 'Checkpoints save automatically' : 'No automatic checkpoints'}
+          </span>
+        </span>
+        <Button
+          size="sm"
+          variant={tracking.on ? 'secondary' : 'default'}
+          disabled={tracking.busy}
+          aria-describedby="popover-tracking"
+          onClick={() => void tracking.toggle()}
+        >
+          {tracking.on ? 'Pause tracking' : 'Resume tracking'}
+        </Button>
+      </div>
 
       <Button
         className="mb-3 w-full justify-between"
@@ -124,18 +161,6 @@ export function TrayPopover() {
         <span className="ml-auto text-[11px] text-muted-foreground">
           <Kbd>{formatHotkey(settings.data?.hotkeyPalette ?? 'Alt+Command+Space')}</Kbd>
         </span>
-        <Button
-          size="icon"
-          variant="ghost"
-          aria-label={`Pause or resume automatic capture`}
-          onClick={() =>
-            void api('settings:set', { captureEnabled: !settings.data?.captureEnabled }).then(() =>
-              settings.refetch(),
-            )
-          }
-        >
-          <Power aria-hidden />
-        </Button>
       </footer>
     </div>
   )

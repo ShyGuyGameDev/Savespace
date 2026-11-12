@@ -54,7 +54,7 @@ export function SettingsView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="drag flex h-12 shrink-0 items-center border-b border-border px-6">
+      <header className="drag flex h-12 shrink-0 items-center border-b border-border pl-6 pr-44">
         <h1 className="text-[14px] font-semibold">Settings</h1>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-10">

@@ -6,6 +6,7 @@ import type { Store } from '../db/store'
 import { matchProject } from '../inference/match'
 import type { Summarizer } from '../summarizer/types'
 import { describeRef } from '../db/store'
+import { classifyWithAi } from './classify'
 import { selectRelevant, type Ask } from './relevance'
 
 export interface CheckpointServiceDeps {
@@ -47,6 +48,7 @@ export class CheckpointService {
     const snap = await engine.snapshot()
     const projects = store.listProjects()
     let pid = projectId
+    let aiFiled: { projectId: string; judgedBy: 'apple' | 'ollama' } | null = null
     if (pid === undefined) {
       const recent = store.recentActivity(Date.now() - 15 * 60_000)
       const observed = [
@@ -57,6 +59,23 @@ export class CheckpointService {
       ]
       const m = matchProject(projects, observed)
       pid = m.confidence >= 0.25 ? m.projectId : null
+      // The rules found nothing: let the local AI look at what you were doing and, if it clearly
+      // matches one of your projects, file the checkpoint under it.
+      if (!pid && this.d.ask && projects.length) {
+        const c = await classifyWithAi({
+          projects,
+          refs: snap.refs,
+          events: store.recentActivity(Date.now() - 30 * 60_000),
+          lastSummary: (id) =>
+            store.listCheckpoints({ projectId: id, limit: 1 })[0]?.summary ?? null,
+          ask: this.d.ask,
+          appName: (b) => snap.system.apps.find((a) => a.bundleId === b)?.name,
+        })
+        if (c) {
+          pid = c.projectId
+          aiFiled = c
+        }
+      }
     }
     const project = pid ? store.getProject(pid) : null
     const since = (project?.lastCheckpointAt ?? 0) || Date.now() - 4 * 3600_000
@@ -120,6 +139,12 @@ export class CheckpointService {
       store.audit(
         'summarize',
         `Summary written by ${summary.source === 'apple' ? 'Apple on-device AI' : 'the downloaded local model'}`,
+        { checkpointId: cp.id },
+      )
+    if (aiFiled && project)
+      store.audit(
+        'capture',
+        `Filed under “${project.name}” (judged by ${aiFiled.judgedBy === 'apple' ? 'Apple on-device AI' : 'the downloaded model'})`,
         { checkpointId: cp.id },
       )
     if (relevance.dropped.length) {

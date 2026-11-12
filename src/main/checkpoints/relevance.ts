@@ -33,7 +33,7 @@ function usageKey(r: ResourceRef): string {
   return r.kind === 'url' || r.kind === 'doc' ? `${r.kind}:${normUrl(r.url)}` : refKey(r)
 }
 
-function label(
+export function label(
   r: ResourceRef,
   appName: (b: string) => string,
   lastTitle?: (b: string) => string | null,

@@ -168,6 +168,85 @@ describe('capture engine', () => {
     expect(cp?.projectId).toBe(p.id)
   })
 
+  describe('the local AI files new checkpoints under a matching project', () => {
+    const setup = (reply: (prompt: string) => string | null, confirm: string | null = 'YES') => {
+      ctx = tempDb()
+      const trip = ctx.store.createProject('Trip to Lisbon', ['host:airbnb.com'])
+      const site = ctx.store.createProject('Website rebuild', ['host:example.org'])
+      const asked: { instructions: string; prompt: string }[] = []
+      const svc = new CheckpointService({
+        store: ctx.store,
+        engine: makeEngine(),
+        summarizer: new TemplateSummarizer(),
+        ask: async (instructions, prompt) => {
+          asked.push({ instructions, prompt })
+          if (instructions.includes('double-check'))
+            return confirm === null ? null : { text: confirm, source: 'apple' }
+          if (!instructions.includes('file a saved snapshot')) return null
+          const t = reply(prompt)
+          return t === null ? null : { text: t, source: 'apple' }
+        },
+      })
+      const classify = () => asked.filter((a) => a.instructions.includes('file a saved snapshot'))
+      return { trip, site, svc, classify }
+    }
+    const numberOf = (prompt: string, name: string) =>
+      new RegExp(`^(\\d+)\\. ${name}`, 'm').exec(prompt)![1]!
+
+    it('rules find nothing → the AI picks the project it clearly matches', async () => {
+      const { site, svc, classify } = setup((p) => numberOf(p, 'Website rebuild'))
+      const cp = await svc.create('manual')
+      expect(cp?.projectId).toBe(site.id)
+      const prompt = classify()[0]!.prompt
+      expect(prompt).toMatch(/Trip to Lisbon \| includes: site airbnb\.com/)
+      expect(prompt).toMatch(/What the person was working on:\n- \[Code file\] src\/a\.ts/) // focused item first
+      expect(
+        ctx.store.listAudit().some((a) => /Filed under “Website rebuild”/.test(a.detail)),
+      ).toBe(true)
+    })
+
+    it('stays unassigned when the AI says NONE, names more than one, or is unavailable', async () => {
+      for (const answer of ['NONE', '1, 2', 'not sure', null]) {
+        const { svc } = setup(() => answer)
+        expect((await svc.create('manual'))?.projectId).toBeNull()
+        ctx.cleanup()
+      }
+      ctx = tempDb()
+    })
+
+    it('needs a plain YES on the second check, or it stays unassigned', async () => {
+      for (const confirm of ['NO', 'Probably', 'Maybe yes', null]) {
+        const { svc } = setup((p) => numberOf(p, 'Website rebuild'), confirm)
+        expect((await svc.create('manual'))?.projectId).toBeNull()
+        ctx.cleanup()
+      }
+      ctx = tempDb()
+    })
+
+    it('does not guess from bare apps alone', async () => {
+      const { classifyWithAi } = await import('../../src/main/checkpoints/classify')
+      ctx = tempDb()
+      let asked = 0
+      const r = await classifyWithAi({
+        projects: [{ ...ctx.store.createProject('X', []) }],
+        refs: [{ kind: 'app', app: 'com.tinyspeck.slackmacgap', title: 'Slack' }],
+        events: [],
+        lastSummary: () => null,
+        ask: async () => (asked++, { text: '1', source: 'apple' }),
+      })
+      expect(r).toBeNull()
+      expect(asked).toBe(0)
+    })
+
+    it('does not ask when the rules already found the project, or a project was chosen', async () => {
+      const { svc, classify, trip } = setup(() => '1')
+      ctx.store.createProject('WP', ['repo:/Users/me/code/wp'])
+      await svc.create('manual')
+      await svc.create('manual', trip.id)
+      expect(classify()).toHaveLength(0)
+    })
+  })
+
   it('saves only one checkpoint when asked repeatedly while saving (no spamming)', async () => {
     ctx = tempDb()
     const p = ctx.store.createProject('WP', ['repo:/Users/me/code/wp'])

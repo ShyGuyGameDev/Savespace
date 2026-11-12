@@ -21,7 +21,13 @@ export function createHandlers(
   return {
     'settings:get': () => store.getSettings(),
     'settings:set': (patch) => {
+      const before = store.getSettings().captureEnabled
       const s = store.setSettings(patch)
+      if (patch.captureEnabled !== undefined && patch.captureEnabled !== before)
+        store.audit(
+          'settings',
+          patch.captureEnabled ? 'Tracking resumed' : 'Tracking paused: nothing is being watched',
+        )
       hooks.onSettingsChanged?.(Object.keys(patch))
       changed('settings')
       return s
@@ -252,6 +258,9 @@ export function createHandlers(
       return ok
     },
     'app:currentContext': () => {
+      // While tracking is paused nothing is being watched, so there's no current context to show.
+      if (!store.getSettings().captureEnabled)
+        return { projectId: null, projectName: null, frontApp: null, confidence: 0 }
       const c = ctx.scheduler.lastContext
       return {
         ...c,

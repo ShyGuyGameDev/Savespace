@@ -27,7 +27,7 @@ export function Privacy() {
   const granted = perms.data?.accessibility === 'granted'
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="drag flex h-12 shrink-0 items-center gap-3 border-b border-border px-6">
+      <header className="drag flex h-12 shrink-0 items-center gap-3 border-b border-border pl-6 pr-44">
         <h1 className="text-[14px] font-semibold">Privacy</h1>
         <Badge tone="success">
           <Lock className="size-3" aria-hidden /> Encrypted, on this Mac only

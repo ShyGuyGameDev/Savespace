@@ -145,3 +145,99 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI judges relevance (real)
     expect(kept).not.toContain('lofi hip hop radio - beats to relax/study to')
   }, 90_000)
 })
+
+describe.skipIf(!existsSync(HELPER))(
+  'Apple on-device AI files checkpoints under projects (real)',
+  () => {
+    it('picks the matching project, and says NONE for unrelated work', async () => {
+      const { classifyWithAi } = await import('../../src/main/checkpoints/classify')
+      registerAppleAiHelper(HELPER)
+      const apple = new AppleSummarizer(new SafeExec(), () => true)
+      if (!(await apple.status(true)).available) return
+      const ask = async (i: string, p: string) => {
+        const t = await apple.ask(i, p)
+        return t ? { text: t, source: 'apple' as const } : null
+      }
+      const proj = (id: string, name: string, signals: string[], apps: string[] = []) => ({
+        id,
+        name,
+        color: '',
+        signals,
+        createdAt: 0,
+        updatedAt: 0,
+        lastCheckpointAt: null,
+        apps: apps.map((a) => ({ bundleId: a, name: a, items: [] })),
+        onlyApps: true,
+        archived: false,
+      })
+      const projects = [
+        proj('trip', 'Trip to Lisbon', ['host:airbnb.com', 'host:tap.pt']),
+        proj('tax', 'Taxes 2026', ['path:/Users/me/Documents/Taxes']),
+        proj('atlas', 'Atlas API', ['repo:/Users/me/code/atlas-api', 'host:acme.atlassian.net']),
+      ]
+      const base = { projects, events: [], lastSummary: () => null, ask }
+      const t0 = Date.now()
+      const hit = await classifyWithAi({
+        ...base,
+        refs: [
+          {
+            kind: 'url',
+            app: 'com.google.Chrome',
+            url: 'https://www.booking.com/hotel/pt/alfama-suites',
+            title: 'Alfama Suites, Lisbon – hotel',
+            focused: true,
+          },
+          {
+            kind: 'url',
+            app: 'com.google.Chrome',
+            url: 'https://www.google.com/maps/place/Belém+Tower',
+            title: 'Belém Tower – Google Maps',
+          },
+        ],
+      })
+      console.log(`[apple-ai] classify hit: ${JSON.stringify(hit)} in ${Date.now() - t0} ms`)
+      expect(hit?.projectId).toBe('trip')
+      const miss = await classifyWithAi({
+        ...base,
+        refs: [
+          {
+            kind: 'url',
+            app: 'com.google.Chrome',
+            url: 'https://www.allrecipes.com/recipe/lasagna',
+            title: 'Easy lasagna recipe',
+            focused: true,
+          },
+        ],
+      })
+      console.log(`[apple-ai] classify miss: ${JSON.stringify(miss)}`)
+      expect(miss).toBeNull()
+
+      // Near misses must stay unassigned too: a different trip, a generic inbox, another codebase.
+      const tab = (url: string, title: string) => ({
+        kind: 'url' as const,
+        app: 'com.google.Chrome',
+        url,
+        title,
+        focused: true,
+      })
+      const nearMisses = [
+        [tab('https://www.booking.com/hotel/fr/le-marais', 'Hotel Le Marais, Paris – hotel')],
+        [tab('https://mail.google.com/mail/u/0/#inbox', 'Inbox (12) - Gmail')],
+        [
+          {
+            kind: 'file' as const,
+            app: 'com.microsoft.VSCode',
+            path: '/Users/me/code/zephyr-web/src/App.tsx',
+            title: 'App.tsx',
+            focused: true,
+          },
+        ],
+      ]
+      for (const refs of nearMisses) {
+        const r = await classifyWithAi({ ...base, refs })
+        console.log(`[apple-ai] near miss ${JSON.stringify(refs[0]!.title)}: ${JSON.stringify(r)}`)
+        expect(r).toBeNull()
+      }
+    }, 180_000)
+  },
+)

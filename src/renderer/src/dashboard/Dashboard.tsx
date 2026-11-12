@@ -8,6 +8,7 @@ import { Privacy } from './Privacy'
 import { SettingsView } from './SettingsView'
 import { ShortcutsSheet, useShortcutsSheet } from './ShortcutsSheet'
 import { checkpointNow } from '@/lib/checkpoint'
+import { TrackingToggle } from '@/components/TrackingToggle'
 
 export type Navigate = (r: string) => void
 
@@ -74,7 +75,11 @@ export function Dashboard({ route, navigate }: { route: string; navigate: Naviga
   return (
     <div className="flex h-full">
       <Sidebar route={route} navigate={navigate} />
-      <main className="flex min-w-0 flex-1 flex-col bg-background">{view}</main>
+      <main className="relative flex min-w-0 flex-1 flex-col bg-background">
+        {view}
+        {/* Always in the top-right corner, on every page. */}
+        <TrackingToggle className="absolute right-4 top-0 z-30 h-12" />
+      </main>
       <ShortcutsSheet open={sheet.open} onOpenChange={sheet.setOpen} />
       <Toaster />
     </div>

@@ -69,7 +69,7 @@ export function AppsView() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="drag flex h-12 shrink-0 items-center gap-3 border-b border-border px-6">
+      <header className="drag flex h-12 shrink-0 items-center gap-3 border-b border-border pl-6 pr-44">
         <h1 className="text-[14px] font-semibold">Apps</h1>
         <p className="text-[12px] text-muted-foreground">
           Choose what Savespace reads and reopens for each app.

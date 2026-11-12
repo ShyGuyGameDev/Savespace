@@ -41,15 +41,36 @@ function resourcePath(file: string): string {
     : join(app.getAppPath(), 'resources', file)
 }
 
+const trackingOn = () => ctx?.store.getSettings().captureEnabled ?? true
+
+/** Tooltip on the menu-bar icon always says whether tracking is on. */
+function updateTrayState(): void {
+  tray?.setToolTip(`${APP_NAME}: ${trackingOn() ? 'tracking is on' : 'tracking is paused'}`)
+}
+
+let handlers: ReturnType<typeof createHandlers> | null = null
+
+/** Pauses/resumes from the menu-bar icon's right-click menu (same path as the in-app buttons). */
+function setTracking(on: boolean): void {
+  void handlers?.['settings:set']({ captureEnabled: on }, undefined as never)
+}
+
 function createTray(): void {
   const icon = nativeImage.createFromPath(resourcePath('trayTemplate.png'))
   icon.setTemplateImage(true)
   tray = new Tray(icon)
-  tray.setToolTip(APP_NAME)
+  updateTrayState()
   tray.on('click', (_e, bounds) => togglePopover(bounds))
   tray.on('right-click', () => {
+    const on = trackingOn()
     tray?.popUpContextMenu(
       Menu.buildFromTemplate([
+        { label: on ? 'Tracking is on' : 'Tracking is paused', enabled: false },
+        {
+          label: on ? 'Pause tracking' : 'Resume tracking',
+          click: () => setTracking(!on),
+        },
+        { type: 'separator' },
         { label: `Open ${APP_NAME}`, click: () => showDashboard('/') },
         { type: 'separator' },
         { label: `Quit ${APP_NAME}`, role: 'quit' },
@@ -79,31 +100,30 @@ app.whenReady().then(async () => {
     return
   }
   if (process.env['SAVESPACE_E2E_SEED'] === '1') seedDemo(ctx)
-  registerIpc(
-    createHandlers(ctx, {
-      onSettingsChanged: (keys) => {
-        if (keys.some((k) => k.startsWith('hotkey'))) registerHotkeys()
-        // Start capturing once the intro is finished (and restart if the interval changes).
-        if (
-          (keys.includes('captureIntervalSec') || keys.includes('onboardingComplete')) &&
-          !process.env['SAVESPACE_E2E']
-        )
-          ctx?.scheduler.start()
-        const aiKeys = [
-          'aiEnabled',
-          'ollamaModel',
-          'aiProvider',
-          'aiDownloadConsent',
-          'onboardingComplete',
-        ].some((k) => keys.includes(k))
-        if (aiKeys && (!process.env['SAVESPACE_E2E'] || process.env['SAVESPACE_E2E_AI']))
-          void ctx?.ai.sync()
-        if (keys.includes('launchAtLogin'))
-          app.setLoginItemSettings({ openAtLogin: !!ctx?.store.getSettings().launchAtLogin })
-      },
-    }),
-    devUrl,
-  )
+  handlers = createHandlers(ctx, {
+    onSettingsChanged: (keys) => {
+      if (keys.includes('captureEnabled')) updateTrayState()
+      if (keys.some((k) => k.startsWith('hotkey'))) registerHotkeys()
+      // Start capturing once the intro is finished (and restart if the interval changes).
+      if (
+        (keys.includes('captureIntervalSec') || keys.includes('onboardingComplete')) &&
+        !process.env['SAVESPACE_E2E']
+      )
+        ctx?.scheduler.start()
+      const aiKeys = [
+        'aiEnabled',
+        'ollamaModel',
+        'aiProvider',
+        'aiDownloadConsent',
+        'onboardingComplete',
+      ].some((k) => keys.includes(k))
+      if (aiKeys && (!process.env['SAVESPACE_E2E'] || process.env['SAVESPACE_E2E_AI']))
+        void ctx?.ai.sync()
+      if (keys.includes('launchAtLogin'))
+        app.setLoginItemSettings({ openAtLogin: !!ctx?.store.getSettings().launchAtLogin })
+    },
+  })
+  registerIpc(handlers, devUrl)
   createTray()
   ensurePalette()
   ensurePopover()

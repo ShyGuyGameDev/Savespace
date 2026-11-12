@@ -117,4 +117,43 @@ test.describe('dashboard', () => {
     await pop.screenshot({ path: 'test-results/popover.png' })
     await app.close()
   })
+
+  test('power button pauses tracking; dashboard and menu-bar dropdown both say so clearly', async () => {
+    const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
+    const page = await windowByRoute(app, '/')
+    const power = page.getByRole('switch', { name: 'Tracking' })
+    await expect(page.getByText('Tracking on', { exact: true })).toBeVisible()
+    await expect(power).toBeChecked()
+    // It sits in the top-right corner of the window.
+    const box = (await power.boundingBox())!
+    const width = (await page.evaluate('window.innerWidth')) as number
+    expect(box.y).toBeLessThan(40)
+    expect(width - (box.x + box.width)).toBeLessThan(40)
+    await page.screenshot({ path: 'test-results/tracking-on.png' })
+
+    await power.click()
+    await expect(page.getByText('Tracking paused', { exact: true })).toBeVisible()
+    await expect(power).not.toBeChecked()
+    const s = (await page.evaluate("window.savespace.invoke('settings:get')")) as {
+      captureEnabled: boolean
+    }
+    expect(s.captureEnabled).toBe(false)
+    await page.waitForTimeout(400) // let colour transitions finish
+    await page.screenshot({ path: 'test-results/tracking-paused.png' })
+
+    // The menu-bar dropdown says it plainly, and can resume.
+    const pop = await windowByRoute(app, '/popover')
+    await pop.reload()
+    await expect(pop.getByText('Tracking is paused')).toBeVisible()
+    await expect(pop.getByText('Nothing is being tracked')).toBeVisible()
+    await pop.screenshot({ path: 'test-results/popover-paused.png' })
+    await pop.getByRole('button', { name: 'Resume tracking' }).click()
+    await expect(pop.getByText('Tracking is on')).toBeVisible()
+    await expect(pop.getByRole('button', { name: 'Pause tracking' })).toBeVisible()
+    await page.waitForTimeout(400) // let colour transitions finish
+    await pop.screenshot({ path: 'test-results/popover-on.png' })
+    // …and the dashboard follows.
+    await expect(page.getByText('Tracking on', { exact: true })).toBeVisible()
+    await app.close()
+  })
 })
