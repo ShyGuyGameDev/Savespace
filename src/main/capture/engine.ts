@@ -63,9 +63,14 @@ export class CaptureEngine {
     if (sys.processesReadable) this.d.noteAutomation('com.apple.systemevents', 'granted')
     else if (sys.automationDenied) this.d.noteAutomation('com.apple.systemevents', 'denied')
     const rules = this.d.getRules()
+    const off = this.captureOffBundles()
     const apps = sys.apps
       .filter(
-        (a) => a.bundleId && !SELF_BUNDLE_IDS.has(a.bundleId) && !isExcludedApp(a.bundleId, rules),
+        (a) =>
+          a.bundleId &&
+          !SELF_BUNDLE_IDS.has(a.bundleId) &&
+          !isExcludedApp(a.bundleId, rules) &&
+          !off.has(a.bundleId), // turned off on the Apps page: not read at all
       )
       .map((a) => ({ ...a, windows: a.windows.filter((w) => !isExcludedTitle(w.title, rules)) }))
     const running = new Set(apps.map((a) => a.bundleId!))
@@ -113,11 +118,20 @@ export class CaptureEngine {
     return out
   }
 
+  /** Bundle ids of apps whose reading is turned off on the Apps page. */
+  private captureOffBundles(): Set<string> {
+    const off = new Set(this.d.getSettings().appsCaptureOff)
+    return new Set(
+      this.d.registry.adapters.filter((a) => off.has(a.id)).flatMap((a) => a.bundleIds),
+    )
+  }
+
   private async adapterRefs(ctx: CaptureContext, onlyBundle?: string): Promise<ResourceRef[]> {
     const seen = new Set<string>()
     const jobs: Promise<ResourceRef[]>[] = []
+    const off = new Set(this.d.getSettings().appsCaptureOff)
     for (const a of this.d.registry.adapters) {
-      if (seen.has(a.id)) continue
+      if (seen.has(a.id) || off.has(a.id)) continue
       const relevant = onlyBundle
         ? a.bundleIds.includes(onlyBundle)
         : a.bundleIds.some((b) => ctx.isRunning(b)) || a.bundleIds.includes('*')
@@ -150,8 +164,10 @@ export class CaptureEngine {
   async snapshot(): Promise<Snapshot> {
     const { ctx, system, rules } = await this.context()
     const raw = [...this.coreRefs(ctx.apps), ...(await this.adapterRefs(ctx))]
-    const withGit = [...raw, ...(await this.gitRefs(raw))]
-    let refs = dedupe(filterRefs(validOnly(withGit), rules))
+    const gitOff = this.d.getSettings().appsCaptureOff.includes('git')
+    const withGit = gitOff ? raw : [...raw, ...(await this.gitRefs(raw))]
+    const off = this.captureOffBundles()
+    let refs = dedupe(filterRefs(validOnly(withGit), rules)).filter((r) => !off.has(r.app))
     if (this.d.enrich) refs = filterRefs(validOnly(await this.d.enrich(refs)), rules)
     return { at: Date.now(), refs, system }
   }
@@ -188,6 +204,7 @@ export class CaptureEngine {
     const signals = new Set<string>()
     for (const r of sigRefs) for (const s of signalsForRef(r, this.git.repoRootOf)) signals.add(s)
     for (const t of titleTokens(title)) signals.add(`token:${t}`)
+    signals.add(`app:${front.bundleId}`) // lets projects defined by their apps be recognised
     return {
       at: Date.now(),
       bundleId: front.bundleId,

@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import {
   AdapterInfoSchema,
+  ProjectAppSchema,
+  ProjectItemSchema,
   AiDownloadSchema,
   AiStatusSchema,
   AuditEntrySchema,
@@ -34,6 +36,9 @@ const SettingsPatchSchema = z
     aiEnabled: z.boolean(),
     aiProvider: z.enum(['auto', 'apple', 'downloaded']),
     aiDownloadConsent: z.enum(['unasked', 'yes', 'no']),
+    appsCaptureOff: z.array(z.string().max(100)).max(300),
+    appsRestoreOff: z.array(z.string().max(100)).max(300),
+    automationStates: z.record(z.string().max(200), z.enum(['granted', 'denied'])),
     hotkeyPalette: z.string().min(1).max(60),
     hotkeyCheckpoint: z.string().min(1).max(60),
     connectorsEnabled: z.record(z.string(), z.boolean()),
@@ -70,8 +75,27 @@ export const IpcContract = {
         .regex(/^#[0-9a-fA-F]{6}$/)
         .optional(),
       signals: z.array(z.string().min(3).max(1000)).max(100).optional(),
+      apps: z.array(ProjectAppSchema).max(100).optional(),
+      onlyApps: z.boolean().optional(),
     }),
     output: ProjectSchema,
+  },
+  'apps:installed': {
+    input: none,
+    output: z.array(z.object({ bundleId: z.string(), name: z.string() })),
+  },
+  'apps:openItems': {
+    input: z.object({
+      bundleId: z
+        .string()
+        .regex(/^[A-Za-z0-9.-]+$/)
+        .max(200),
+    }),
+    output: z.array(ProjectItemSchema),
+  },
+  'dialog:pick': {
+    input: z.object({ kind: z.enum(['folder', 'file']) }),
+    output: z.object({ path: z.string().nullable() }),
   },
   'projects:delete': { input: z.object({ id }), output: ok },
 
@@ -104,7 +128,15 @@ export const IpcContract = {
     output: ok,
   },
   'suggestions:dismiss': { input: z.object({ id }), output: ok },
-  'suggestions:refresh': { input: none, output: z.array(SuggestionSchema) },
+  'suggestions:refresh': {
+    input: none,
+    output: z.object({
+      suggestions: z.array(SuggestionSchema),
+      found: z.number().int().nonnegative(),
+      source: z.enum(['activity', 'recent', 'open-now', 'none']),
+      message: z.string(),
+    }),
+  },
 
   'restore:preview': { input: z.object({ checkpointId: id }), output: RestorePlanSchema },
   'restore:run': {

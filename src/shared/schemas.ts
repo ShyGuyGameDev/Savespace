@@ -155,11 +155,59 @@ export const RestoreReportSchema = z.object({
 })
 export type RestoreReport = z.infer<typeof RestoreReportSchema>
 
+/** Something specific pinned to an app in a project: a tab/web page, a folder or a file. */
+export const ProjectItemSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('url'),
+    url: z
+      .string()
+      .max(8192)
+      .refine((u) => /^https?:\/\//i.test(u), 'must be http(s)'),
+    title: z.string().max(300).optional(),
+  }),
+  z.object({
+    kind: z.literal('folder'),
+    path: z
+      .string()
+      .min(2)
+      .max(4096)
+      .refine((p) => p.startsWith('/'), 'must be absolute'),
+  }),
+  z.object({
+    kind: z.literal('file'),
+    path: z
+      .string()
+      .min(2)
+      .max(4096)
+      .refine((p) => p.startsWith('/'), 'must be absolute'),
+  }),
+])
+export type ProjectItem = z.infer<typeof ProjectItemSchema>
+
+/** An app that belongs to a project, with optional specific items pinned to it. */
+export const ProjectAppSchema = z.object({
+  bundleId: z
+    .string()
+    .regex(/^[A-Za-z0-9.-]+$/)
+    .max(200),
+  name: z.string().max(120),
+  items: z.array(ProjectItemSchema).max(200),
+})
+export type ProjectApp = z.infer<typeof ProjectAppSchema>
+
 export const ProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
   color: z.string(),
   signals: z.array(z.string()),
+  /** Apps (and their pinned items) that make up this project, set in Edit project. */
+  apps: z.array(ProjectAppSchema),
+  /**
+   * "Only restore these apps" (only matters when `apps` isn't empty). On: checkpoints keep only the
+   * chosen apps, and inside an app with pinned items only those items. Off: the chosen apps and
+   * pinned items are always kept, alongside anything else that was in use and related.
+   */
+  onlyApps: z.boolean().default(true),
   createdAt: z.number(),
   updatedAt: z.number(),
   lastCheckpointAt: z.number().nullable(),
@@ -280,6 +328,10 @@ export const AdapterInfoSchema = z.object({
   installed: z.boolean(),
   needsAutomation: z.boolean(),
   notes: z.string(),
+  /** Which kinds of specific items can be pinned to this app in a project. */
+  itemKinds: z.array(z.enum(['url', 'folder', 'file'])),
+  /** Whether "Reopen when resuming" applies (false for context-only items like git). */
+  canRestore: z.boolean(),
 })
 export type AdapterInfo = z.infer<typeof AdapterInfoSchema>
 

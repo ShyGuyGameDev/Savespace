@@ -12,6 +12,13 @@ export const projects = sqliteTable('projects', {
     .$type<string[]>()
     .notNull()
     .default(sql`'[]'`),
+  /** Apps (with pinned items) chosen in Edit project. */
+  apps: text('apps', { mode: 'json' })
+    .$type<import('@shared/schemas').ProjectApp[]>()
+    .notNull()
+    .default(sql`'[]'`),
+  /** "Only restore these apps": checkpoints for this project keep only its chosen apps (and their pinned items). */
+  onlyApps: integer('only_apps', { mode: 'boolean' }).notNull().default(true),
   archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at').notNull().default(now),
   updatedAt: integer('updated_at').notNull().default(now),

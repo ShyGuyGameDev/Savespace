@@ -183,4 +183,34 @@ describe('store', () => {
     expect(ctx.store.listExclusions().filter((r) => r.builtIn).length).toBeGreaterThan(10)
     expect(ctx.store.listAudit().map((a) => a.action)).toEqual(['delete-all'])
   })
+
+  it('derives project signals from its chosen apps and pinned items, keeping learned ones', () => {
+    ctx = tempDb()
+    const p = ctx.store.createProject('Atlas', ['repo:/r/atlas'])
+    const e = ctx.store.updateProject(p.id, {
+      apps: [
+        {
+          bundleId: 'com.google.Chrome',
+          name: 'Google Chrome',
+          items: [{ kind: 'url', url: 'https://acme.atlassian.net/browse/ATL-1' }],
+        },
+        {
+          bundleId: 'com.microsoft.VSCode',
+          name: 'Visual Studio Code',
+          items: [{ kind: 'folder', path: '/r/atlas-web' }],
+        },
+      ],
+    })
+    expect(e.apps).toHaveLength(2)
+    expect(e.signals.sort()).toEqual([
+      'app:com.google.Chrome',
+      'app:com.microsoft.VSCode',
+      'host:acme.atlassian.net',
+      'path:/r/atlas-web',
+      'repo:/r/atlas',
+    ])
+    // Removing an app removes what it contributed, but not the learned signal.
+    const e2 = ctx.store.updateProject(p.id, { apps: [] })
+    expect(e2.signals).toEqual(['repo:/r/atlas'])
+  })
 })

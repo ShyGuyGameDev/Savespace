@@ -22,6 +22,7 @@ export function Suggestions() {
   const [sel, setSel] = useState(0)
   const [renaming, setRenaming] = useState<Suggestion | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [lookResult, setLookResult] = useState<{ ok: boolean; text: string } | null>(null)
   const items = q.data ?? []
   const current = items[sel]
 
@@ -70,12 +71,34 @@ export function Suggestions() {
           disabled={refreshing}
           onClick={async () => {
             setRefreshing(true)
-            await api('suggestions:refresh').finally(() => setRefreshing(false))
+            setLookResult(null)
+            try {
+              const r = await api('suggestions:refresh')
+              setLookResult({ ok: r.found > 0, text: r.message })
+            } catch (e) {
+              setLookResult({ ok: false, text: (e as Error).message })
+            } finally {
+              setRefreshing(false)
+            }
           }}
         >
-          <RefreshCw className={cn(refreshing && 'animate-spin')} aria-hidden /> Look again
+          <RefreshCw className={cn(refreshing && 'animate-spin')} aria-hidden />{' '}
+          {refreshing ? 'Looking…' : 'Look again'}
         </Button>
       </header>
+      {lookResult && (
+        <p
+          role="status"
+          className={cn(
+            'mx-6 mt-3 rounded-lg border px-3 py-2 text-[13px]',
+            lookResult.ok
+              ? 'border-success/30 bg-success/10 text-foreground'
+              : 'border-border bg-muted/50 text-muted-foreground',
+          )}
+        >
+          {lookResult.text}
+        </p>
+      )}
       <div className="min-h-0 flex-1 overflow-y-auto">
         {items.length === 0 ? (
           <EmptyState

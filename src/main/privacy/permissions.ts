@@ -64,7 +64,27 @@ export const SETTINGS_PANES = {
 export class Permissions {
   private automation: Record<string, PermissionsStatus['automation'][string]> = {}
 
-  constructor(private readonly exec: SafeExec) {}
+  constructor(
+    private readonly exec: SafeExec,
+    /** Remembers Automation outcomes across restarts (macOS offers no way to read them without asking). */
+    private readonly persist?: {
+      load(): Record<string, 'granted' | 'denied'>
+      save(states: Record<string, 'granted' | 'denied'>): void
+    },
+  ) {
+    this.automation = { ...(persist?.load() ?? {}) }
+  }
+
+  private set(bundleId: string, state: PermissionsStatus['automation'][string]): void {
+    if (this.automation[bundleId] === state) return
+    this.automation[bundleId] = state
+    if (this.persist) {
+      const keep: Record<string, 'granted' | 'denied'> = {}
+      for (const [k, v] of Object.entries(this.automation))
+        if (v === 'granted' || v === 'denied') keep[k] = v
+      this.persist.save(keep)
+    }
+  }
 
   accessibility(): PermissionsStatus['accessibility'] {
     try {
@@ -78,6 +98,7 @@ export class Permissions {
     const automation: PermissionsStatus['automation'] = {}
     for (const t of AUTOMATION_TARGETS)
       automation[t.bundleId] = this.automation[t.bundleId] ?? 'not-determined'
+    for (const [k, v] of Object.entries(this.automation)) automation[k] = v
     return { accessibility: this.accessibility(), automation }
   }
 
@@ -93,7 +114,7 @@ export class Permissions {
 
   /** Record an Automation outcome observed during normal capture (keeps the Privacy center accurate). */
   noteAutomation(bundleId: string, state: 'granted' | 'denied'): void {
-    this.automation[bundleId] = state
+    this.set(bundleId, state)
   }
 
   /**
@@ -107,9 +128,13 @@ export class Permissions {
    */
   async requestAutomation(
     bundleId: string,
+    name?: string,
     sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)),
   ): Promise<PermissionsStatus> {
-    const target = AUTOMATION_TARGETS.find((t) => t.bundleId === bundleId)
+    if (!/^[A-Za-z0-9.-]+$/.test(bundleId)) throw new Error('Invalid app')
+    const target =
+      AUTOMATION_TARGETS.find((t) => t.bundleId === bundleId) ??
+      (name ? { bundleId, name, why: '' } : null)
     if (!target) throw new Error('Unknown automation target')
     const done = (
       outcome: NonNullable<PermissionsStatus['lastRequest']>['outcome'],
@@ -127,7 +152,7 @@ export class Permissions {
           [bundleId],
         )
         if (!state.installed) {
-          this.automation[bundleId] = 'unknown'
+          this.set(bundleId, 'unknown')
           return done('not-installed', `${target.name} isn’t installed on this Mac.`)
         }
         if (!state.running) {
@@ -143,11 +168,11 @@ export class Permissions {
         if (!r.running)
           return done('error', `${target.name} didn’t open. Open it yourself and click Ask again.`)
       }
-      this.automation[bundleId] = 'granted'
+      this.set(bundleId, 'granted')
       return done('granted', `${target.name} is allowed.`)
     } catch (e) {
       if (e instanceof SafeExecError && e.code === 'not-authorized') {
-        this.automation[bundleId] = 'denied'
+        this.set(bundleId, 'denied')
         return done(
           'denied',
           `You chose Don’t Allow. To change it: System Settings → Privacy & Security → Automation → Savespace → turn on ${target.name}.`,

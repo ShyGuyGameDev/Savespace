@@ -78,6 +78,12 @@ export const DEFAULT_SETTINGS = {
   aiProvider: 'auto' as AiProvider,
   /** Did the user agree to download the fallback AI model? Skipping the intro counts as yes. */
   aiDownloadConsent: 'unasked' as 'unasked' | 'yes' | 'no',
+  /** Apps page: adapters whose apps Savespace should NOT read (ids). */
+  appsCaptureOff: [] as string[],
+  /** Apps page: adapters whose items Savespace should NOT reopen (ids). */
+  appsRestoreOff: [] as string[],
+  /** Remembered macOS Automation answers per app (bundle id → granted/denied). */
+  automationStates: {} as Record<string, 'granted' | 'denied'>,
   hotkeyPalette: DEFAULT_HOTKEYS.palette as string,
   hotkeyCheckpoint: DEFAULT_HOTKEYS.checkpointNow as string,
   connectorsEnabled: { gmail: false, drive: false, calendar: false } as Record<string, boolean>,

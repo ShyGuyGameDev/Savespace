@@ -1,5 +1,5 @@
 /**
- * Where the Download Now button points: always the NEWEST release on ShyGuyGameDev/Savespace.
+ * Where the Download for macOS button points: always the NEWEST release on ShyGuyGameDev/Savespace.
  * For this to work, each release must
  *   1. NOT be marked "Pre-release" (GitHub skips pre-releases and drafts for "latest"), and
  *   2. include a file named exactly `Savespace-arm64.dmg` (what `npm run dist` produces).

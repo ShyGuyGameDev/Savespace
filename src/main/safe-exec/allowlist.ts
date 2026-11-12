@@ -275,6 +275,23 @@ BINARIES['chromium-profile'] = {
   validate: profileCliValidate,
 }
 
+/** Reads one app's bundle identifier from its Info.plist (read-only; prints to stdout). */
+BINARIES['plutil'] = {
+  id: 'plutil',
+  candidates: ['/usr/bin/plutil'],
+  validate(args) {
+    return args.length === 6 &&
+      args[0] === '-extract' &&
+      args[1] === 'CFBundleIdentifier' &&
+      args[2] === 'raw' &&
+      args[3] === '-o' &&
+      args[4] === '-' &&
+      /^\/[^\0]*\.app\/Contents\/Info\.plist$/.test(args[5] ?? '')
+      ? null
+      : 'plutil: only -extract CFBundleIdentifier raw -o - <App>.app/Contents/Info.plist'
+  },
+}
+
 BINARIES['apple-ai'] = {
   id: 'apple-ai',
   candidates: [],

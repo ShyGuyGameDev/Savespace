@@ -20,14 +20,14 @@ const bucket = (at: number) => Math.floor(at / WINDOW_MS)
 const fp = (...parts: string[]) =>
   createHash('sha256').update(parts.join('\u0000')).digest('hex').slice(0, 24)
 
-function covered(sig: string, projects: Project[]): boolean {
+export function covered(sig: string, projects: Project[]): boolean {
   return projects.some((p) =>
     p.signals.some((ps) => signalMatches(ps, sig) || signalMatches(sig, ps)),
   )
 }
 
 /** Folders that are too broad to be a project on their own. */
-function tooBroad(sig: string, home: string): boolean {
+export function tooBroad(sig: string, home: string): boolean {
   const [k, v] = splitSignal(sig)
   if (k !== 'path' && k !== 'repo') return false
   const generic = [
@@ -77,6 +77,8 @@ export function computeSuggestions(
   events: EventLite[],
   projects: Project[],
   home: string,
+  /** How often an anchor must be seen. "Look again" relaxes this when the normal rules find nothing. */
+  min: { samples: number; windows: number } = { samples: 3, windows: 2 },
 ): SuggestionDraft[] {
   const out: SuggestionDraft[] = []
   const active = projects.filter((p) => !p.archived)
@@ -102,8 +104,8 @@ export function computeSuggestions(
     .filter(
       ([s, w]) =>
         ANCHOR_KINDS.has(splitSignal(s)[0]) &&
-        (countBySig.get(s) ?? 0) >= 3 &&
-        w.size >= 2 &&
+        (countBySig.get(s) ?? 0) >= min.samples &&
+        w.size >= min.windows &&
         !covered(s, active) &&
         !tooBroad(s, home),
     )

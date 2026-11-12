@@ -87,7 +87,10 @@ export async function createContext(hooks: ContextHooks = {}): Promise<AppContex
   const exec = new SafeExec(process.env['SAVESPACE_DRY_RUN'] === '1' ? dryRunRunner : undefined, {
     canArrange: () => store.getSettings().arrangeWindows,
   })
-  const permissions = new Permissions(exec)
+  const permissions = new Permissions(exec, {
+    load: () => store.getSettings().automationStates,
+    save: (automationStates) => store.setSettings({ automationStates }),
+  })
   const google = new GoogleConnectors(
     dataDir,
     keychainKeys,
@@ -169,6 +172,7 @@ export async function createContext(hooks: ContextHooks = {}): Promise<AppContex
     getSettings: () => store.getSettings(),
     readWindows: async () =>
       (await readSystem(exec, permissions.accessibility() === 'granted')).apps,
+    getProject: (id) => store.getProject(id),
     onProgress: hooks.onRestoreProgress,
     onFinished: (r) => {
       const counts = r.results.reduce<Record<string, number>>(

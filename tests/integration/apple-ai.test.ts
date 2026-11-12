@@ -28,6 +28,8 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI (real)', () => {
         createdAt: 0,
         updatedAt: 0,
         lastCheckpointAt: null,
+        apps: [],
+        onlyApps: true,
         archived: false,
       },
       trigger: 'idle',
@@ -74,6 +76,8 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI judges relevance (real)
       createdAt: 0,
       updatedAt: 0,
       lastCheckpointAt: null,
+      apps: [],
+      onlyApps: true,
       archived: false,
     }
     const refs = [

@@ -91,6 +91,8 @@ describe.skipIf(!existsSync(BIN))('bundled AI engine', () => {
           createdAt: 0,
           updatedAt: 0,
           lastCheckpointAt: null,
+          apps: [],
+          onlyApps: true,
           archived: false,
         },
         trigger: 'idle',

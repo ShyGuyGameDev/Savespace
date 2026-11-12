@@ -133,4 +133,38 @@ describe('SafeExec', () => {
       code: 'not-authorized',
     })
   })
+
+  it('reads an app bundle id with plutil, but nothing else', async () => {
+    const { exec } = recorder()
+    await exec.run('plutil', [
+      '-extract',
+      'CFBundleIdentifier',
+      'raw',
+      '-o',
+      '-',
+      '/Applications/Safari.app/Contents/Info.plist',
+    ])
+    await expect(
+      exec.run('plutil', [
+        '-replace',
+        'CFBundleIdentifier',
+        '-string',
+        'x',
+        '/Applications/Safari.app/Contents/Info.plist',
+      ]),
+    ).rejects.toThrow(/Blocked/)
+    await expect(
+      exec.run('plutil', [
+        '-extract',
+        'CFBundleIdentifier',
+        'raw',
+        '-o',
+        '/tmp/out',
+        '/Applications/Safari.app/Contents/Info.plist',
+      ]),
+    ).rejects.toThrow(/Blocked/)
+    await expect(
+      exec.run('plutil', ['-extract', 'CFBundleIdentifier', 'raw', '-o', '-', '/etc/passwd']),
+    ).rejects.toThrow(/Blocked/)
+  })
 })

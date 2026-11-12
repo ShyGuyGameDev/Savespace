@@ -12,12 +12,14 @@ import {
   type Checkpoint,
   type CheckpointTrigger,
   type ExclusionRule,
+  type ProjectApp,
   type Project,
   type ResourceRef,
   type Suggestion,
   type SummarySource,
 } from '@shared/schemas'
 import type { Db } from './client'
+import { signalsFromApps } from '../inference/project-apps'
 import * as t from './schema'
 
 const PROJECT_COLORS = [
@@ -100,6 +102,8 @@ export class Store {
       name: r.name,
       color: r.color,
       signals: r.signals,
+      apps: r.apps ?? [],
+      onlyApps: r.onlyApps ?? true,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       lastCheckpointAt: r.lastCheckpointAt ?? null,
@@ -166,7 +170,16 @@ export class Store {
   }
 
   /** Edits a project's name, colour and/or what belongs to it (its signals). */
-  updateProject(id: string, patch: { name?: string; color?: string; signals?: string[] }): Project {
+  updateProject(
+    id: string,
+    patch: {
+      name?: string
+      color?: string
+      signals?: string[]
+      apps?: ProjectApp[]
+      onlyApps?: boolean
+    },
+  ): Project {
     const cur = this.getProject(id)
     if (!cur) throw new Error('Project not found')
     this.db
@@ -174,9 +187,19 @@ export class Store {
       .set({
         name: patch.name?.trim() || cur.name,
         color: patch.color ?? cur.color,
-        signals: patch.signals
-          ? [...new Set(patch.signals.map((x) => x.trim()).filter(Boolean))]
-          : cur.signals,
+        // Signals = learned ones (kept) + ones derived from the project's chosen apps (recomputed).
+        signals: patch.apps
+          ? [
+              ...new Set([
+                ...cur.signals.filter((x) => !signalsFromApps(cur.apps).includes(x)),
+                ...signalsFromApps(patch.apps),
+              ]),
+            ]
+          : patch.signals
+            ? [...new Set(patch.signals.map((x) => x.trim()).filter(Boolean))]
+            : cur.signals,
+        apps: patch.apps ?? cur.apps,
+        onlyApps: patch.onlyApps ?? cur.onlyApps,
         updatedAt: Date.now(),
       })
       .where(eq(t.projects.id, id))

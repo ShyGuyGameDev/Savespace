@@ -58,22 +58,80 @@ function installed(bundleIds: string[]): boolean {
   )
 }
 
+const BROWSERS = new Set([
+  'chrome',
+  'brave',
+  'edge',
+  'vivaldi',
+  'chromium',
+  'arc',
+  'safari',
+  'firefox',
+])
+const EDITORS = new Set([
+  'vscode',
+  'vscode-insiders',
+  'cursor',
+  'windsurf',
+  'zed',
+  'xcode',
+  'sublime',
+  'nova',
+  'intellij',
+  'webstorm',
+  'pycharm',
+  'goland',
+  'phpstorm',
+  'rubymine',
+  'clion',
+  'rider',
+  'rustrover',
+  'datagrip',
+])
+const FOLDER_APPS = new Set(['finder', 'terminal', 'iterm2', 'warp'])
+const DOC_APPS = new Set([
+  'pages',
+  'numbers',
+  'keynote',
+  'preview',
+  'textedit',
+  'word',
+  'excel',
+  'powerpoint',
+  'sketch',
+  'acrobat',
+])
+
+/** What can be pinned to an app inside a project (Edit project → app). */
+export function itemKindsFor(adapterId: string): ('url' | 'folder' | 'file')[] {
+  if (BROWSERS.has(adapterId)) return ['url']
+  if (EDITORS.has(adapterId)) return ['folder', 'file']
+  if (FOLDER_APPS.has(adapterId)) return ['folder']
+  if (DOC_APPS.has(adapterId)) return ['file']
+  return []
+}
+
 export function listAdapters(ctx: Pick<AppContext, 'registry'>): AdapterInfo[] {
-  return ctx.registry.adapters.map((a) => ({
-    id: a.id,
-    displayName: a.displayName,
-    bundleIds: a.bundleIds,
-    tier: a.tier,
-    installed: a.bundleIds.includes('git')
-      ? true
-      : a.bundleIds.length === 0
+  // Window arrangement lives in Settings; Google is under Settings → Connectors.
+  return ctx.registry.adapters
+    .filter((a) => a.id !== 'arrange' && a.id !== 'google-connectors')
+    .map((a) => ({
+      id: a.id,
+      displayName: a.displayName,
+      bundleIds: a.bundleIds,
+      tier: a.tier,
+      installed: a.bundleIds.includes('git')
         ? true
-        : installed(a.bundleIds) ||
-          a.bundleIds.some(
-            (b) =>
-              b.startsWith('com.jetbrains') && existsSync('/Applications/JetBrains Toolbox.app'),
-          ),
-    needsAutomation: a.needsAutomation,
-    notes: a.notes,
-  }))
+        : a.bundleIds.length === 0
+          ? true
+          : installed(a.bundleIds) ||
+            a.bundleIds.some(
+              (b) =>
+                b.startsWith('com.jetbrains') && existsSync('/Applications/JetBrains Toolbox.app'),
+            ),
+      needsAutomation: a.needsAutomation,
+      notes: a.notes,
+      canRestore: a.id !== 'git',
+      itemKinds: itemKindsFor(a.id),
+    }))
 }

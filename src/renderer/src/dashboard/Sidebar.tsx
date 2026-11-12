@@ -1,13 +1,10 @@
-import { Bookmark, Boxes, CircleDot, Inbox, Plus, Settings, Shield } from 'lucide-react'
+import { Boxes, CircleDot, Inbox, Plus, Settings, Shield } from 'lucide-react'
 import { APP_NAME } from '@shared/constants'
-import { Button } from '@/components/ui/button'
-import { Badge, Kbd, Tooltip, Spinner } from '@/components/ui/misc'
-import { useCheckpointNow } from '@/lib/checkpoint'
+import { Badge } from '@/components/ui/misc'
 import { api, useIpc } from '@/lib/bridge'
 import { cn, relativeTime } from '@/lib/utils'
 import { useState } from 'react'
 import { PromptDialog } from '@/components/PromptDialog'
-import { toast } from './toast'
 
 function NavItem({
   active,
@@ -58,7 +55,6 @@ export function Sidebar({ route, navigate }: { route: string; navigate: (r: stri
   const ctx = useIpc('app:currentContext', undefined, { refetchInterval: 30_000 })
   const settings = useIpc('settings:get')
   const pending = suggestions.data?.length ?? 0
-  const { saving, save } = useCheckpointNow()
   const [naming, setNaming] = useState(false)
 
   return (
@@ -66,31 +62,6 @@ export function Sidebar({ route, navigate }: { route: string; navigate: (r: stri
       aria-label="Projects and sections"
       className="drag flex w-60 shrink-0 flex-col border-r border-border bg-transparent px-2 pb-3 pt-11"
     >
-      <div className="no-drag mb-3 px-1">
-        <Tooltip
-          content={
-            <>
-              Save a checkpoint now <Kbd>⌘N</Kbd>
-            </>
-          }
-        >
-          <Button
-            className="w-full justify-start"
-            variant="secondary"
-            disabled={saving}
-            aria-busy={saving}
-            onClick={() => void save().catch((e: Error) => toast(e.message))}
-          >
-            {saving ? (
-              <Spinner className="size-4" label="Saving checkpoint" />
-            ) : (
-              <Bookmark aria-hidden />
-            )}
-            {saving ? 'Saving…' : 'Checkpoint now'}
-          </Button>
-        </Tooltip>
-      </div>
-
       <div className="no-drag min-h-0 flex-1 space-y-0.5 overflow-y-auto">
         <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Projects

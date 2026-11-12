@@ -29,7 +29,9 @@ export function Dashboard({ route, navigate }: { route: string; navigate: Naviga
       if (e.key === '?') return sheet.setOpen(true)
       if (e.metaKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
-        void checkpointNow().catch((err: Error) => toast(err.message))
+        void checkpointNow(/^\/project\/([^/]+)/.exec(route)?.[1]).catch((err: Error) =>
+          toast(err.message),
+        )
         return
       }
       if (e.metaKey && e.key === ',') {
@@ -55,7 +57,7 @@ export function Dashboard({ route, navigate }: { route: string; navigate: Naviga
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [navigate, sheet])
+  }, [navigate, sheet, route])
 
   const view = route.startsWith('/suggestions') ? (
     <Suggestions />

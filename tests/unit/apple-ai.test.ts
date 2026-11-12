@@ -257,7 +257,7 @@ describe('Automation "Ask" button', () => {
       stderr: '',
       code: 0,
     })
-    const r = await p.requestAutomation('com.apple.Safari', noSleep)
+    const r = await p.requestAutomation('com.apple.Safari', undefined, noSleep)
     expect(calls).toContain('open -g -b com.apple.Safari --')
     expect(calls.at(-1)).toBe('probe')
     expect(r.automation['com.apple.Safari']).toBe('granted')
@@ -270,11 +270,35 @@ describe('Automation "Ask" button', () => {
       stderr: 'Not authorized to send Apple events to Mail. (-1743)',
       code: 1,
     })
-    const r1 = await denied.p.requestAutomation('com.apple.mail', noSleep)
+    const r1 = await denied.p.requestAutomation('com.apple.mail', undefined, noSleep)
     expect(r1.automation['com.apple.mail']).toBe('denied')
     expect(r1.lastRequest?.message).toMatch(/Privacy & Security → Automation/)
     const slow = await setup(true, { stdout: '', stderr: '', code: 124 })
-    const r2 = await slow.p.requestAutomation('com.apple.Notes', noSleep)
+    const r2 = await slow.p.requestAutomation('com.apple.Notes', undefined, noSleep)
     expect(r2.lastRequest?.outcome).toBe('no-answer')
+  })
+
+  it('remembers permission answers across restarts and can ask any app Savespace supports', async () => {
+    const { Permissions } = await import('../../src/main/privacy/permissions')
+    let saved: Record<string, 'granted' | 'denied'> = {}
+    const persist = {
+      load: () => saved,
+      save: (s: Record<string, 'granted' | 'denied'>) => void (saved = s),
+    }
+    const exec = new SafeExec(
+      async (file, args) => {
+        const src = args[3] ?? ''
+        if (src.includes('installed: true'))
+          return { stdout: '{"installed":true,"running":true}', stderr: '', code: 0 }
+        return { stdout: '{"running":true,"windows":1}', stderr: '', code: 0 }
+      },
+      { resolve: (id) => `/bin/${id}` },
+    )
+    const p1 = new Permissions(exec, persist)
+    await p1.requestAutomation('com.googlecode.iterm2', 'iTerm2', noSleep)
+    expect(saved).toEqual({ 'com.googlecode.iterm2': 'granted' })
+    const p2 = new Permissions(exec, persist) // after a restart
+    expect(p2.status().automation['com.googlecode.iterm2']).toBe('granted')
+    await expect(p2.requestAutomation('bad id!', 'x', noSleep)).rejects.toThrow(/Invalid app/)
   })
 })

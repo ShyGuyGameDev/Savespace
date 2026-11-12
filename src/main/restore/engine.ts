@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Settings } from '@shared/constants'
 import type {
   Checkpoint,
+  Project,
   ResourceRef,
   RestoreItemResult,
   RestorePlan,
@@ -12,12 +13,16 @@ import type { AdapterRegistry } from '../adapters/registry'
 import type { AppWindowInfo, RestoreContext } from '../adapters/types'
 import { errorReason, result } from '../adapters/util'
 import type { SafeExec } from '../safe-exec'
+import { refKey } from '../capture/engine'
+import { matchesPinned, refsFromApps } from '../inference/project-apps'
 
 export interface RestoreDeps {
   exec: SafeExec
   registry: AdapterRegistry
   getSettings: () => Settings
   readWindows: () => Promise<AppWindowInfo[]>
+  /** Looks up a checkpoint's project so its pinned items can be reopened too. */
+  getProject?: (id: string) => Project | null
   onProgress?: (r: RestoreReport) => void
   onFinished?: (r: RestoreReport) => void
   sleep?: (ms: number) => Promise<void>
@@ -55,10 +60,56 @@ export class RestoreEngine {
 
   plan(cp: Checkpoint): RestorePlan {
     const s = this.d.getSettings()
-    const items: RestorePlanItem[] = orderRefs(cp.resources).map((ref) => {
+    const restoreOff = new Set(s.appsRestoreOff)
+    // An item is off if its adapter is off, or the app it belongs to has a dedicated adapter that is off.
+    const offFor = (ref: Checkpoint['resources'][number], adapterId: string) =>
+      restoreOff.has(adapterId)
+        ? (this.d.registry.adapters.find((x) => x.id === adapterId)?.displayName ?? adapterId)
+        : (this.d.registry.adapters.find(
+            (x) => restoreOff.has(x.id) && x.bundleIds.includes(ref.app),
+          )?.displayName ?? null)
+    // Items pinned to the project's apps are reopened too, unless the checkpoint already has them.
+    const project = cp.projectId ? this.d.getProject?.(cp.projectId) : null
+    const have = new Set(cp.resources.map(refKey))
+    const pinned = project?.apps?.length
+      ? refsFromApps(project.apps, (b) => {
+          const id = this.d.registry.forBundle(b).id
+          return ['terminal', 'iterm2', 'warp'].includes(id)
+            ? 'terminalCwd'
+            : id === 'finder' || id.startsWith('generic:')
+              ? 'folder'
+              : 'workspace'
+        }).filter((r) => !have.has(refKey(r)))
+      : []
+    // "Only restore these apps": other apps are skipped, and so are unpinned items in apps
+    // that have pinned ones.
+    const onlyApps =
+      project?.apps?.length && project.onlyApps !== false
+        ? new Map(project.apps.map((a) => [a.bundleId, a]))
+        : null
+    const belongs = (ref: Checkpoint['resources'][number]): boolean => {
+      const pa = onlyApps?.get(ref.app)
+      if (!pa) return false
+      if (!pa.items.length || ref.kind === 'app' || ref.kind === 'windowFrame') return true
+      return matchesPinned(ref, pa.items)
+    }
+    const items: RestorePlanItem[] = orderRefs([...cp.resources, ...pinned]).map((ref) => {
       const a = this.d.registry.forRef(ref)
       let desc = a.describe(ref)
-      if (ref.kind === 'windowFrame' && !s.arrangeWindows)
+      const off = offFor(ref, a.id)
+      if (off)
+        desc = {
+          action: 'skip',
+          description: desc.description,
+          reason: `Reopening ${off} is turned off (Apps page)`,
+        }
+      if (onlyApps && ref.kind !== 'gitState' && !belongs(ref))
+        desc = {
+          action: 'skip',
+          description: desc.description,
+          reason: `Not one of ${project!.name}’s apps (Only restore these apps is on)`,
+        }
+      else if (ref.kind === 'windowFrame' && !s.arrangeWindows)
         desc = {
           action: 'skip',
           description: desc.description,

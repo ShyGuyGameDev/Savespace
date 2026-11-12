@@ -121,5 +121,15 @@ export function splitSignal(s: string): [string, string] {
 /** Weight of a signal kind when scoring project matches. */
 export function signalWeight(s: string): number {
   const k = splitSignal(s)[0]
-  return k === 'repo' ? 5 : k === 'path' ? 3 : k === 'host' ? 2 : k === 'cal' ? 2 : 1
+  return k === 'repo'
+    ? 5
+    : k === 'path'
+      ? 3
+      : k === 'host'
+        ? 2
+        : k === 'cal'
+          ? 2
+          : k === 'app'
+            ? 1
+            : 1
 }

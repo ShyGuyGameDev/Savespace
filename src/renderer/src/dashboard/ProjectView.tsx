@@ -16,8 +16,9 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Checkpoint, Project } from '@shared/schemas'
 import { ResourceIcon } from '@/components/ResourceIcon'
 import { RestorePreviewDialog } from '@/components/RestorePreview'
+import { DeleteCheckpointDialog } from '@/components/DeleteCheckpointDialog'
 import { Button } from '@/components/ui/button'
-import { Badge, EmptyState, Kbd, Tooltip } from '@/components/ui/misc'
+import { Badge, EmptyState, Kbd, Spinner, Tooltip } from '@/components/ui/misc'
 import { checkpointNow, useCheckpointNow } from '@/lib/checkpoint'
 import { api, useIpc } from '@/lib/bridge'
 import { formatHotkey } from '@/lib/hotkeys'
@@ -92,7 +93,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
     <div className="flex h-full min-h-0">
       <section
         aria-label="Checkpoint timeline"
-        className="flex w-80 shrink-0 flex-col border-r border-border"
+        className="flex w-[340px] shrink-0 flex-col border-r border-border"
       >
         <header className="drag flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
           {project && (
@@ -105,6 +106,32 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
           <h1 className="min-w-0 flex-1 truncate text-[14px] font-semibold">
             {project?.name ?? 'All checkpoints'}
           </h1>
+          <Tooltip
+            content={
+              <>
+                {project ? `Save a checkpoint for ${project.name}` : 'Save a checkpoint now'}{' '}
+                <Kbd>⌘N</Kbd>
+              </>
+            }
+          >
+            <Button
+              size="sm"
+              variant="secondary"
+              className="no-drag shrink-0 px-2 text-[12px] [&_svg]:size-3.5"
+              disabled={saving}
+              aria-busy={saving}
+              onClick={() =>
+                void checkpointNow(projectId ?? undefined).catch((e: Error) => toast(e.message))
+              }
+            >
+              {saving ? (
+                <Spinner className="size-4" label="Saving checkpoint" />
+              ) : (
+                <Bookmark aria-hidden />
+              )}
+              {saving ? 'Saving…' : 'Checkpoint now'}
+            </Button>
+          </Tooltip>
           {project && (
             <ProjectMenu project={project} onEdit={() => setEditing(true)} navigate={navigate} />
           )}
@@ -265,6 +292,7 @@ function CheckpointDetail({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(cp.summary)
   const [removed, setRemoved] = useState<Set<number>>(new Set())
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const startEdit = () => {
     setDraft(cp.summary)
     setRemoved(new Set())
@@ -456,11 +484,18 @@ function CheckpointDetail({
             variant="ghost"
             size="sm"
             className="text-danger"
-            onClick={() => api('checkpoints:delete', { id: cp.id })}
+            onClick={() => setConfirmDelete(true)}
           >
             <Trash2 aria-hidden /> Delete checkpoint
           </Button>
         </div>
+        <DeleteCheckpointDialog
+          cp={cp}
+          project={project}
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          onDeleted={() => toast('Checkpoint deleted')}
+        />
       </div>
     </div>
   )

@@ -2,6 +2,7 @@ import type { Project, ResourceRef } from '@shared/schemas'
 import { refKey } from '../capture/engine'
 import { signalMatches, signalsForRef } from '../capture/signals'
 import { describeRef } from '../db/store'
+import { matchesPinned } from '../inference/project-apps'
 
 /** One activity sample from the rolling buffer (taken about once a minute). */
 export interface UsageEvent {
@@ -133,12 +134,38 @@ export async function selectRelevant(o: {
   const dropped: RelevanceResult['dropped'] = []
   const candidates: { ref: ResourceRef; use: number }[] = []
 
+  // A project made of chosen apps: their pinned items are always kept. With "Only restore these
+  // apps" on, nothing else belongs (other apps, and unpinned items in apps that have pinned ones).
+  const projectApps = o.project?.apps?.length
+    ? new Map(o.project.apps.map((a) => [a.bundleId, a]))
+    : null
+  const onlyApps = !!projectApps && o.project!.onlyApps !== false
+
   for (const r of items) {
+    if (projectApps) {
+      const pa = projectApps.get(r.app)
+      if (pa && matchesPinned(r, pa.items)) {
+        kept.add(r)
+        continue
+      }
+      if (onlyApps && (!pa || pa.items.length > 0)) {
+        dropped.push({ ref: r, why: 'unrelated' })
+        continue
+      }
+    }
     if (matchesProject(r)) kept.add(r)
     else if (!enoughHistory || usage(r) > 0 || r.focused) candidates.push({ ref: r, use: usage(r) })
     else dropped.push({ ref: r, why: 'not-used' })
   }
   for (const r of bareApps) {
+    if (projectApps?.has(r.app)) {
+      kept.add(r) // apps chosen for the project are always kept
+      continue
+    }
+    if (onlyApps) {
+      dropped.push({ ref: r, why: 'unrelated' }) // not one of the project's apps
+      continue
+    }
     if (!enoughHistory || (appUse.get(r.app) ?? 0) > 0 || r.focused)
       candidates.push({ ref: r, use: appUse.get(r.app) ?? 0 })
     else dropped.push({ ref: r, why: 'not-used' })

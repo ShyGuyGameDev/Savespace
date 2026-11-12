@@ -207,4 +207,101 @@ describe('registry routing', () => {
     ).toBe('launch')
     expect(reg.forRef({ kind: 'file', app: 'com.microsoft.VSCode', path: '/x' }).id).toBe('vscode')
   })
+
+  it('skips apps whose reopening is turned off on the Apps page', () => {
+    const e = engine({ ...DEFAULT_SETTINGS, appsRestoreOff: ['flaky'] })
+    const plan = e.plan(cp([{ kind: 'url', app: 'com.flaky', url: 'https://x.test' }]))
+    expect(plan.items[0]).toMatchObject({
+      action: 'skip',
+      reason: 'Reopening Flaky is turned off (Apps page)',
+    })
+  })
+
+  it('reopens items pinned to the project, even if the checkpoint does not have them', () => {
+    const project = {
+      id: 'p',
+      name: 'P',
+      color: '',
+      signals: [],
+      createdAt: 0,
+      updatedAt: 0,
+      lastCheckpointAt: null,
+      archived: false,
+      onlyApps: true,
+      apps: [
+        {
+          bundleId: 'com.flaky',
+          name: 'Flaky',
+          items: [
+            { kind: 'url' as const, url: 'https://pinned.test/x' },
+            { kind: 'url' as const, url: 'https://already.test/' },
+          ],
+        },
+      ],
+    }
+    const e = new RestoreEngine({
+      exec,
+      registry: new AdapterRegistry([flaky]),
+      getSettings: () => DEFAULT_SETTINGS,
+      readWindows: async () => [],
+      sleep: async () => {},
+      getProject: () => project,
+    })
+    const plan = e.plan({
+      ...cp([{ kind: 'url', app: 'com.flaky', url: 'https://already.test/' }]),
+      projectId: 'p',
+    })
+    const opened = plan.items.flatMap((i) =>
+      i.ref.kind === 'url' ? [i.ref.url] : i.ref.kind === 'app' ? [`app:${i.ref.app}`] : [],
+    )
+    expect(opened).toEqual(['app:com.flaky', 'https://already.test/', 'https://pinned.test/x'])
+  })
+
+  it('Only restore these apps: skips other apps and unpinned items; off restores everything', () => {
+    const project = {
+      id: 'p',
+      name: 'Atlas',
+      color: '',
+      signals: [],
+      createdAt: 0,
+      updatedAt: 0,
+      lastCheckpointAt: null,
+      archived: false,
+      onlyApps: true,
+      apps: [
+        {
+          bundleId: 'com.flaky',
+          name: 'Flaky',
+          items: [{ kind: 'url' as const, url: 'https://pinned.test/' }],
+        },
+      ],
+    }
+    const make = (p: typeof project) =>
+      new RestoreEngine({
+        exec,
+        registry: new AdapterRegistry([flaky]),
+        getSettings: () => DEFAULT_SETTINGS,
+        readWindows: async () => [],
+        sleep: async () => {},
+        getProject: () => p,
+      })
+    const checkpoint = {
+      ...cp([
+        { kind: 'url', app: 'com.flaky', url: 'https://pinned.test/' },
+        { kind: 'url', app: 'com.flaky', url: 'https://other.test/' },
+        { kind: 'app', app: 'com.spotify', title: 'Spotify' },
+      ]),
+      projectId: 'p',
+    }
+    const actions = (e: RestoreEngine) =>
+      e
+        .plan(checkpoint)
+        .items.map((i) => [i.ref.kind === 'url' ? i.ref.url : i.ref.app, i.action, i.reason ?? ''])
+    const on = actions(make(project))
+    expect(on).toContainEqual(['https://pinned.test/', 'open', ''])
+    expect(on.find((x) => x[0] === 'https://other.test/')?.[1]).toBe('skip')
+    expect(on.find((x) => x[0] === 'com.spotify')?.[2]).toMatch(/Not one of Atlas’s apps/)
+    const off = actions(make({ ...project, onlyApps: false }))
+    expect(off.every((x) => x[1] !== 'skip' || !/Not one of/.test(String(x[2])))).toBe(true)
+  })
 })

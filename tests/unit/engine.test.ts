@@ -40,11 +40,11 @@ const fakeBrowser: AppAdapter = {
   describe: () => ({ action: 'open', description: '' }),
 }
 
-function makeEngine() {
+function makeEngine(settings: Partial<typeof DEFAULT_SETTINGS> = {}) {
   return new CaptureEngine({
     exec,
     registry: new AdapterRegistry([fakeBrowser]),
-    getSettings: () => DEFAULT_SETTINGS,
+    getSettings: () => ({ ...DEFAULT_SETTINGS, ...settings }),
     getRules: () => buildRules(ctx.store.listExclusions()),
     accessibility: () => true,
     noteAutomation: () => {},
@@ -186,5 +186,12 @@ describe('capture engine', () => {
     // Once it's done, a new request makes a new checkpoint again.
     await svc.create('manual', p.id)
     expect(ctx.store.listCheckpoints({ projectId: p.id })).toHaveLength(2)
+  })
+
+  it('reads nothing from an app turned off on the Apps page (not even its windows)', async () => {
+    ctx = tempDb()
+    const snap = await makeEngine({ appsCaptureOff: ['fake-browser'] }).snapshot()
+    expect(snap.refs.some((r) => r.app === 'com.google.Chrome')).toBe(false)
+    expect(snap.refs.some((r) => r.app === 'com.microsoft.VSCode')).toBe(true)
   })
 })

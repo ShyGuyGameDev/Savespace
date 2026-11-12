@@ -43,6 +43,11 @@ test.describe('dashboard', () => {
     await page.getByRole('button', { name: /Suggestions/ }).click()
     await expect(page.getByRole('heading', { name: 'Tax Return 2026' })).toBeVisible()
     await page.screenshot({ path: 'test-results/suggestions.png' })
+    // Look again always answers with a visible message.
+    await page.getByRole('button', { name: 'Look again' }).click()
+    await expect(
+      page.getByRole('status').filter({ hasText: /suggestion|Nothing new|idea/ }),
+    ).toBeVisible({ timeout: 20_000 })
     await page.keyboard.press('e')
     await page.getByLabel('Project name').fill('Taxes 2026')
     await page.getByRole('button', { name: 'Confirm' }).last().click()

@@ -23,7 +23,7 @@ export function App() {
         <h1 className="title">Savespace</h1>
         <a className="download" href={DOWNLOAD_URL} download>
           <DownloadIcon />
-          <span>Download Now</span>
+          <span>Download for macOS</span>
         </a>
       </section>
     </main>

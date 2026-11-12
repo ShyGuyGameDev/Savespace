@@ -15,7 +15,15 @@ const ev = (
   projectId: string | null = null,
   windowTitle: string | null = null,
 ): EventLite => ({ at: T0 + min * 60_000, signals, projectId, windowTitle })
-const base = { color: '', createdAt: 0, updatedAt: 0, lastCheckpointAt: null, archived: false }
+const base = {
+  color: '',
+  createdAt: 0,
+  updatedAt: 0,
+  lastCheckpointAt: null,
+  apps: [],
+  onlyApps: true,
+  archived: false,
+}
 
 let ctx: ReturnType<typeof tempDb>
 afterEach(() => ctx?.cleanup())
@@ -128,5 +136,63 @@ describe('InferenceService', () => {
     expect(() => svc.accept(ctx.store.listSuggestions('accepted')[0]!.id)).toThrow(
       /no longer pending/,
     )
+  })
+
+  describe('Look again always gives a result', () => {
+    const nothingOpen = async () => ({ refs: [], frontApp: null })
+    const add = (signals: string[], minutesAgo: number[]) => {
+      for (const m of minutesAgo) ctx.store.addActivity({ at: Date.now() - m * 60_000, bundleId: 'code', appName: 'Code', signals })
+    }
+
+    it('1) normal rules: recent repeated work', async () => {
+      ctx = tempDb()
+      add(['repo:/Users/me/code/atlas'], [90, 89, 30, 5])
+      const r = await new InferenceService(ctx.store, HOME).lookAgain(nothingOpen)
+      expect(r).toMatchObject({ source: 'activity', found: 1 })
+      expect(r.message).toMatch(/1 new suggestion from your recent work/)
+    })
+
+    it('2) looser pass: used a couple of times in one session', async () => {
+      ctx = tempDb()
+      add(['repo:/Users/me/code/atlas'], [3, 2])
+      const r = await new InferenceService(ctx.store, HOME).lookAgain(nothingOpen)
+      expect(r.source).toBe('recent')
+      expect(ctx.store.listSuggestions()[0]?.name).toBe('Atlas')
+    })
+
+    it('3) what is open right now, then the app in front', async () => {
+      ctx = tempDb()
+      const openRepo = async () => ({ refs: [{ kind: 'file' as const, app: 'code', path: '/Users/me/code/zephyr/src/a.ts', title: 'a.ts' }], frontApp: null })
+      const r = await new InferenceService(ctx.store, HOME, (p) => (p.startsWith('/Users/me/code/zephyr') ? '/Users/me/code/zephyr' : null)).lookAgain(openRepo)
+      expect(r.source).toBe('open-now')
+      expect(ctx.store.listSuggestions()[0]).toMatchObject({ name: 'Zephyr', signals: ['repo:/Users/me/code/zephyr'] })
+
+      ctx.cleanup()
+      ctx = tempDb()
+      const svc = new InferenceService(ctx.store, HOME)
+      const r2 = await svc.lookAgain(async () => ({ refs: [], frontApp: { bundleId: 'com.figma.Desktop', name: 'Figma' } }))
+      expect(r2.source).toBe('open-now')
+      const s = ctx.store.listSuggestions()[0]!
+      expect(s).toMatchObject({ name: 'Figma', signals: ['app:com.figma.Desktop'] })
+      svc.accept(s.id)
+      expect(ctx.store.listProjects()[0]?.apps).toEqual([{ bundleId: 'com.figma.Desktop', name: 'Figma', items: [] }])
+    })
+
+    it('4) otherwise explains, and never brings back a dismissed idea', async () => {
+      ctx = tempDb()
+      const svc = new InferenceService(ctx.store, HOME)
+      const empty = await svc.lookAgain(nothingOpen)
+      expect(empty).toMatchObject({ found: 0, source: 'none' })
+      expect(empty.message).toMatch(/Open the files, folders or sites you’re working on/)
+
+      const front = async () => ({ refs: [], frontApp: { bundleId: 'com.figma.Desktop', name: 'Figma' } })
+      await svc.lookAgain(front)
+      const again = await svc.lookAgain(front)
+      expect(again.message).toMatch(/1 suggestion is still waiting below/)
+      ctx.store.setSuggestionStatus(ctx.store.listSuggestions()[0]!.id, 'dismissed')
+      const afterDismiss = await svc.lookAgain(front)
+      expect(afterDismiss.found).toBe(0)
+      expect(ctx.store.listSuggestions()).toHaveLength(0)
+    })
   })
 })

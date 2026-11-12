@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `only_apps` integer DEFAULT 1 NOT NULL;

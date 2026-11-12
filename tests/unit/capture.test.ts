@@ -89,7 +89,15 @@ describe('signals and matching', () => {
     expect(titleTokens('index.ts — savespace — Visual Studio Code')).toEqual(['savespace'])
   })
   it('picks the best project with confidence', () => {
-    const base = { color: '', createdAt: 0, updatedAt: 0, lastCheckpointAt: null, archived: false }
+    const base = {
+      color: '',
+      createdAt: 0,
+      updatedAt: 0,
+      lastCheckpointAt: null,
+      apps: [],
+      onlyApps: true,
+      archived: false,
+    }
     const projects = [
       {
         ...base,
@@ -114,6 +122,8 @@ describe('checkpoint scoping', () => {
     createdAt: 0,
     updatedAt: 0,
     lastCheckpointAt: null,
+    apps: [],
+    onlyApps: true,
     archived: false,
     signals: ['repo:/r'],
   }

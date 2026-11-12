@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { release } from 'node:os'
 import { APP_NAME } from '@shared/constants'
 import type { AppContext } from '../app-context'
@@ -6,6 +6,8 @@ import { exportToDataDir } from '../privacy/export'
 import { broadcast, showDashboard } from '../windows'
 import type { Handlers } from './register'
 import { listAdapters } from '../adapters/info'
+import { listInstalledApps } from '../adapters/installed-apps'
+import type { ProjectItem } from '@shared/schemas'
 
 export function createHandlers(
   ctx: AppContext,
@@ -88,9 +90,16 @@ export function createHandlers(
       return ok
     },
     'suggestions:refresh': async () => {
-      await ctx.inference.refresh()
+      const r = await ctx.inference.lookAgain(async () => {
+        const snap = await ctx.engine.snapshot()
+        const front = snap.system.apps.find((a) => a.frontmost && a.bundleId)
+        return {
+          refs: snap.refs,
+          frontApp: front?.bundleId ? { bundleId: front.bundleId, name: front.name } : null,
+        }
+      })
       changed('suggestions')
-      return store.listSuggestions()
+      return { ...r, suggestions: store.listSuggestions() }
     },
 
     'restore:preview': ({ checkpointId }) => {
@@ -120,7 +129,8 @@ export function createHandlers(
     },
     'permissions:requestAutomation': async ({ bundleId }) => {
       store.audit('permission', `Requested Automation permission for ${bundleId}`)
-      return permissions.requestAutomation(bundleId)
+      const name = ctx.registry.adapters.find((a) => a.bundleIds.includes(bundleId))?.displayName
+      return permissions.requestAutomation(bundleId, name)
     },
 
     'ai:status': () => ctx.ai.status(),
@@ -174,6 +184,39 @@ export function createHandlers(
     },
 
     'adapters:list': () => listAdapters(ctx),
+    'apps:installed': () => listInstalledApps(ctx.exec),
+    'apps:openItems': async ({ bundleId }) => {
+      // What this app has open right now (same read-only capture as a checkpoint), as pinnable items.
+      const snap = await ctx.engine.snapshot()
+      const out: ProjectItem[] = []
+      const seen = new Set<string>()
+      for (const r of snap.refs) {
+        if (r.app !== bundleId) continue
+        let it: ProjectItem | null = null
+        if (r.kind === 'url' || r.kind === 'doc')
+          it = /^https?:/i.test(r.url)
+            ? { kind: 'url', url: r.url, title: r.title?.slice(0, 300) }
+            : null
+        else if (r.kind === 'file') it = { kind: 'file', path: r.path }
+        else if (r.kind === 'folder' || r.kind === 'workspace' || r.kind === 'terminalCwd')
+          it = { kind: 'folder', path: r.path }
+        const key = it ? JSON.stringify(it.kind === 'url' ? it.url : it.path) : ''
+        if (it && !seen.has(key)) {
+          seen.add(key)
+          out.push(it)
+        }
+      }
+      return out.slice(0, 100)
+    },
+    'dialog:pick': async ({ kind }, e) => {
+      const win = BrowserWindow.fromWebContents(e.sender) ?? undefined
+      const opts: Electron.OpenDialogOptions = {
+        properties: kind === 'folder' ? ['openDirectory'] : ['openFile'],
+        buttonLabel: 'Add',
+      }
+      const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+      return { path: r.canceled ? null : (r.filePaths[0] ?? null) }
+    },
 
     'connectors:status': () => ctx.google.status(),
     'connectors:connect': async ({ id }) => {

@@ -60,7 +60,9 @@ export const defaultRunner: Runner = (file, args, timeoutMs) =>
  * Dry-run runner for end-to-end tests (SAVESPACE_DRY_RUN=1): validation, allowlists and records all
  * still apply, but nothing is executed and no app is opened.
  */
-export const dryRunRunner: Runner = async (file) => {
+export const dryRunRunner: Runner = async (file, args, timeoutMs) => {
+  // Reading an app's bundle id is read-only, so test mode runs it for real (to list installed apps).
+  if (file === '/usr/bin/plutil') return defaultRunner(file, args, timeoutMs)
   if (file.endsWith('osascript'))
     return {
       stdout: '{"status":"opened","running":false,"installed":true,"windows":[],"tabs":[]}',

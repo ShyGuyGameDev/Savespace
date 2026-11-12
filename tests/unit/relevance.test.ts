@@ -10,6 +10,8 @@ const project: Project = {
   createdAt: 0,
   updatedAt: 0,
   lastCheckpointAt: null,
+  apps: [],
+  onlyApps: true,
   archived: false,
 }
 const root = (p: string) => (p.startsWith('/r/atlas') ? '/r/atlas' : null)
@@ -138,5 +140,62 @@ describe('in-use + relevance selection', () => {
     expect(parseNumbers('NONE', 4)!.size).toBe(0)
     expect(parseNumbers('no idea', 4)).toBeNull()
     expect([...parseNumbers('9, 2', 3)!]).toEqual([2])
+  })
+
+  it('Only restore these apps (on): keeps only those apps, and in an app with pinned items only those', async () => {
+    const withApps: Project = {
+      ...project,
+      signals: [],
+      apps: [
+        {
+          bundleId: 'chrome',
+          name: 'Chrome',
+          items: [{ kind: 'url', url: 'https://acme.atlassian.net/browse/ATL-1' }],
+        },
+        { bundleId: 'slack', name: 'Slack', items: [] },
+      ],
+    }
+    const r = await selectRelevant({ refs, project: withApps, events, repoRootOf: root })
+    const kept = urls(r.kept)
+    expect(kept).toContain('ATL-1 Rate limits') // pinned (even though it wasn't used)
+    expect(kept).not.toContain('Token bucket in Node.js') // Chrome has pinned items: only those
+    expect(kept).toContain('app:Slack') // chosen app
+    expect(kept).not.toContain('app:Code') // VS Code isn't one of the project's apps
+    expect(r.kept.some((x) => x.kind === 'file')).toBe(false)
+  })
+
+  it('Only restore these apps (off): chosen apps and pinned items always kept, plus related in-use items', async () => {
+    const withApps: Project = {
+      ...project,
+      signals: [],
+      onlyApps: false,
+      apps: [
+        {
+          bundleId: 'chrome',
+          name: 'Chrome',
+          items: [{ kind: 'url', url: 'https://acme.atlassian.net/browse/ATL-1' }],
+        },
+        { bundleId: 'spotify', name: 'Spotify', items: [] },
+      ],
+    }
+    // The AI calls the Amazon tab and the Lo-fi video unrelated.
+    const ask = async (_i: string, prompt: string) => {
+      const list = prompt
+        .split('Items:')[1]!
+        .split('\n')
+        .filter((l) => /^\d+\./.test(l))
+      const bad = list
+        .filter((l) => /Lo-fi|Desk lamp|ATL-1|Spotify/.test(l))
+        .map((l) => l.split('.')[0])
+      return { text: bad.length ? bad.join(', ') : 'NONE', source: 'apple' as const }
+    }
+    const r = await selectRelevant({ refs, project: withApps, events, repoRootOf: root, ask })
+    const kept = urls(r.kept)
+    expect(kept).toContain('ATL-1 Rate limits') // pinned: always kept, never put to the AI
+    expect(kept).toContain('app:Spotify') // chosen app: always kept, even though it wasn't used
+    expect(kept).toContain('Token bucket in Node.js') // others still count when related
+    expect(r.kept.some((x) => x.kind === 'file')).toBe(true) // server.ts (in use, related)
+    expect(kept).not.toContain('Lo-fi beats') // unrelated
+    expect(kept).toContain('app:Slack') // in use, related
   })
 })
