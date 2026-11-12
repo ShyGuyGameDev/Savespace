@@ -62,3 +62,32 @@ test('saying No to the AI download is remembered and nothing downloads', async (
   ).toMatchObject({ aiDownloadConsent: 'no' })
   await app.close()
 })
+
+test('the intro scrolls when a step is taller than the window, and its buttons stay visible', async () => {
+  const { app } = await launchApp({ SAVESPACE_DRY_RUN: '1' })
+  const page = await windowByRoute(app, '/')
+  // Shrink to the smallest window size Savespace allows.
+  await app.evaluate(({ BrowserWindow }) => {
+    for (const w of BrowserWindow.getAllWindows()) if (w.isVisible()) w.setSize(860, 540)
+  })
+  await page.waitForTimeout(300)
+  for (let i = 0; i < 3; i++)
+    await page
+      .getByRole('button', { name: /Continue|Skip for now/ })
+      .last()
+      .click()
+  await expect(page.getByRole('heading', { name: /Ask your apps/ })).toBeVisible()
+  const scroller = page.getByTestId('intro-scroll')
+  const sizes = (await scroller.evaluate((el: { scrollHeight: number; clientHeight: number }) => ({
+    scroll: el.scrollHeight,
+    client: el.clientHeight,
+  }))) as { scroll: number; client: number }
+  expect(sizes.scroll).toBeGreaterThan(sizes.client) // content is taller than the window here
+  await page.screenshot({ path: 'test-results/intro-small-window.png' })
+  await page.mouse.move(430, 300)
+  await page.mouse.wheel(0, 2000)
+  await expect(page.getByText('Which folders were open.')).toBeInViewport()
+  await expect(page.getByRole('button', { name: /Continue/ })).toBeInViewport()
+  await page.screenshot({ path: 'test-results/intro-small-window-scrolled.png' })
+  await app.close()
+})

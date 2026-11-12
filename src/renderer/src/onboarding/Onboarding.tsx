@@ -49,63 +49,66 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="drag h-12 shrink-0" />
-      <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-8 pb-8">
-        <ol className="mb-8 flex items-center gap-1.5" aria-label="Setup progress">
-          {STEPS.map((s, i) => (
-            <li
-              key={s}
-              aria-current={s === step ? 'step' : undefined}
-              className={cn(
-                'h-1 flex-1 rounded-full transition-colors',
-                i <= idx ? 'bg-primary' : 'bg-muted',
-              )}
+      {/* The step content scrolls when it's taller than the window; the buttons below stay put. */}
+      <div className="min-h-0 flex-1 overflow-y-auto" data-testid="intro-scroll">
+        <div className="mx-auto flex min-h-full w-full max-w-xl flex-col px-8 pb-6">
+          <ol className="mb-8 flex items-center gap-1.5" aria-label="Setup progress">
+            {STEPS.map((s, i) => (
+              <li
+                key={s}
+                aria-current={s === step ? 'step' : undefined}
+                className={cn(
+                  'h-1 flex-1 rounded-full transition-colors',
+                  i <= idx ? 'bg-primary' : 'bg-muted',
+                )}
+              >
+                <span className="sr-only">
+                  Step {i + 1} of {STEPS.length}
+                </span>
+              </li>
+            ))}
+          </ol>
+          <AnimatePresence mode="wait">
+            <motion.section
+              key={step}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              className="flex flex-1 flex-col"
+              aria-live="polite"
             >
-              <span className="sr-only">
-                Step {i + 1} of {STEPS.length}
-              </span>
-            </li>
-          ))}
-        </ol>
-        <AnimatePresence mode="wait">
-          <motion.section
-            key={step}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.16, ease: 'easeOut' }}
-            className="flex flex-1 flex-col"
-            aria-live="polite"
-          >
-            {step === 'welcome' && <Welcome />}
-            {step === 'privacy' && <Privacy />}
-            {step === 'accessibility' && <AccessibilityStep />}
-            {step === 'automation' && <AutomationStep />}
-            {step === 'ai' && <AiStep />}
-            {step === 'done' && <Done />}
-          </motion.section>
-        </AnimatePresence>
-        <footer className="mt-6 flex items-center justify-between">
-          <Button variant="ghost" onClick={back} disabled={idx === 0}>
-            Back
-          </Button>
-          <div className="flex items-center gap-2">
-            {step !== 'welcome' && step !== 'privacy' && step !== 'done' && (
-              <Button variant="ghost" onClick={() => void skip()}>
-                Skip for now
-              </Button>
-            )}
-            {step === 'done' ? (
-              <Button onClick={finish} autoFocus>
-                Start using {APP_NAME}
-              </Button>
-            ) : (
-              <Button onClick={next} autoFocus>
-                Continue <ChevronRight aria-hidden />
-              </Button>
-            )}
-          </div>
-        </footer>
+              {step === 'welcome' && <Welcome />}
+              {step === 'privacy' && <Privacy />}
+              {step === 'accessibility' && <AccessibilityStep />}
+              {step === 'automation' && <AutomationStep />}
+              {step === 'ai' && <AiStep />}
+              {step === 'done' && <Done />}
+            </motion.section>
+          </AnimatePresence>
+        </div>
       </div>
+      <footer className="mx-auto flex w-full max-w-xl shrink-0 items-center justify-between border-t border-border/60 px-8 py-4">
+        <Button variant="ghost" onClick={back} disabled={idx === 0}>
+          Back
+        </Button>
+        <div className="flex items-center gap-2">
+          {step !== 'welcome' && step !== 'privacy' && step !== 'done' && (
+            <Button variant="ghost" onClick={() => void skip()}>
+              Skip for now
+            </Button>
+          )}
+          {step === 'done' ? (
+            <Button onClick={finish} autoFocus>
+              Start using {APP_NAME}
+            </Button>
+          ) : (
+            <Button onClick={next} autoFocus>
+              Continue <ChevronRight aria-hidden />
+            </Button>
+          )}
+        </div>
+      </footer>
     </div>
   )
 }
