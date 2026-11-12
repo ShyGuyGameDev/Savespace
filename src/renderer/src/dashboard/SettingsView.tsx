@@ -142,15 +142,7 @@ export function SettingsView() {
 
           <SectionTitle>Keyboard</SectionTitle>
           <Card className="divide-y divide-border">
-            <Row
-              label="Command palette"
-              hint={
-                <>
-                  Electron accelerator, e.g. <span className="font-mono">Alt+Command+Space</span>
-                </>
-              }
-              htmlFor="hk-p"
-            >
+            <Row label="Command palette" htmlFor="hk-p">
               <Kbd>{formatHotkey(v.hotkeyPalette)}</Kbd>
               <Input
                 id="hk-p"

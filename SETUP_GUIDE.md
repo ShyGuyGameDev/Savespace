@@ -68,11 +68,11 @@ You need **Node.js 22.12 or newer** (this includes `npm`) and **Git**.
    ```
    npm install
    ```
-   This takes 2–4 minutes. It downloads Electron (about 100 MB) and Savespace's built-in AI engine (about 186 MB, checksum-verified).
+   This takes 2–4 minutes. It downloads Savespace's app framework (about 100 MB) and its built-in AI engine (about 186 MB, checksum-verified).
 
 ✅ **Worked if:** it ends with a line like `added 700 packages` and `found 0 vulnerabilities`, with no red `ERR!` lines.
 
-❗ **If you see `npm warn install-scripts`:** run `npm install-scripts ls`. The scripts Savespace needs (Electron, esbuild, the SQLite library) are already approved in `package.json`, so this list should say _No packages with unreviewed install scripts_.
+❗ **If you see `npm warn install-scripts`:** run `npm install-scripts ls`. The scripts Savespace needs are already approved in `package.json`, so this list should say _No packages with unreviewed install scripts_.
 ❗ **If you see `EACCES` or permission errors:** don't use `sudo`. Make sure the folder belongs to you: `sudo chown -R $(whoami) ~/Savespace`, then retry.
 
 ---
@@ -92,7 +92,7 @@ You need **Node.js 22.12 or newer** (this includes `npm`) and **Git**.
 
 To stop Savespace: right-click the menu-bar icon → **Quit Savespace** (or press **Control-C** in Terminal).
 
-❗ **If the window doesn't open and Terminal says `Cannot read properties of undefined (reading 'whenReady')`:** your terminal has `ELECTRON_RUN_AS_NODE` set (some editors' built-in terminals do this). The `npm start` script already removes it. If you started Electron some other way, use `npm start`, or run Savespace from the regular Terminal app.
+❗ **If the window doesn't open and Terminal says `Cannot read properties of undefined (reading 'whenReady')`:** some editors' built-in terminals carry a setting that stops apps from starting. Use `npm start` (it clears that setting), or run Savespace from the regular Terminal app.
 ❗ **If you see "Savespace could not open its database":** see Troubleshooting → _Keychain_.
 
 ---
@@ -121,10 +121,7 @@ You can see these screens again later: **Settings → Show the welcome & permiss
 1. On the welcome screen's Accessibility step, click **Open System Settings**. (Later: **Privacy** in the sidebar → Accessibility → **Allow…**.)
 2. macOS shows a box: _"Savespace would like to control this computer using accessibility features."_ Click **Open System Settings**.
 3. **System Settings → Privacy & Security → Accessibility** opens.
-4. Find the app in the list and **turn its switch on**:
-   - When running from Terminal with `npm start`, it's called **Electron**.
-   - When running the installed app from the `.dmg`, it's called **Savespace**.
-   - If it isn't listed, click **+** (bottom of the list), go to **Applications**, pick **Savespace**, and click **Open**.
+4. Find **Savespace** in the list and **turn its switch on**. If it isn't listed, click **+** (bottom of the list), go to **Applications**, pick **Savespace**, and click **Open**.
 5. Enter your Mac password or use Touch ID if asked.
 6. Go back to the Savespace window.
 
@@ -142,12 +139,12 @@ You can see these screens again later: **Settings → Show the welcome & permiss
 > **Note: closed apps will be opened when you ask.** macOS can only ask for permission while an app is running. So if an app is closed when you click **Ask**, Savespace opens it quietly in the background first (it won't jump in front of you), then macOS asks. The app stays open afterwards; quit it whenever you like.
 
 1. On the welcome screen's Automation step, click **Ask** next to each app you use (for example Google Chrome, Safari, Mail, Notes, Calendar). The button says **Waiting for your answer…** while macOS shows its question.
-2. macOS shows: _"Savespace" wants access to control "Google Chrome"…_ (when running from Terminal it says **"Electron"**). Click **Allow**. You have up to 2 minutes.
+2. macOS shows: _"Savespace" wants access to control "Google Chrome"…_. Click **Allow**. You have up to 2 minutes.
 3. Repeat for each app you want. A short note under each app tells you what happened.
 
-✅ **Worked if:** each row shows a green **Allowed** badge. You can also check **System Settings → Privacy & Security → Automation → Savespace (or Electron)**: each app has its switch on.
+✅ **Worked if:** each row shows a green **Allowed** badge. You can also check **System Settings → Privacy & Security → Automation → Savespace**: each app has its switch on.
 
-❗ **If you clicked "Don't Allow" by mistake:** open **System Settings → Privacy & Security → Automation**, find **Savespace** (or **Electron**), and turn on the switch for that app. The Privacy page in Savespace has an **Open Settings** button that takes you there.
+❗ **If you clicked "Don't Allow" by mistake:** open **System Settings → Privacy & Security → Automation**, find **Savespace**, and turn on the switch for that app. The Privacy page in Savespace has an **Open Settings** button that takes you there.
 ❗ **"No answer yet":** the question was missed or took longer than 2 minutes. Click **Ask** again and choose **Allow**.
 ❗ **If you skip this step,** nothing gets opened. macOS asks the first time Savespace needs each app while you have it open, and you can allow it then.
 ❗ **Safari:** tab reading is **off by default** because Safari can't tell Savespace which windows are private. Turn it on in **Settings → Capture → Capture Safari tabs** if you want it. Reopening pages in Safari works either way.
@@ -273,7 +270,7 @@ In Terminal, in the project folder:
 
 1. In Xcode → Settings → Accounts, add your Apple ID and create a **Developer ID Application** certificate (or download it from developer.apple.com → Certificates).
 2. Create an app-specific password at **https://account.apple.com → Sign-In and Security → App-Specific Passwords**.
-3. In `electron-builder.yml`, replace `identity: '-'` with your certificate name (e.g. `identity: 'Developer ID Application: Your Name (TEAMID)'`), change `hardenedRuntime: false` to `true`, and change `notarize: false` to `true`.
+3. In `packaging.yml`, replace `identity: '-'` with your certificate name (e.g. `identity: 'Developer ID Application: Your Name (TEAMID)'`), change `hardenedRuntime: false` to `true`, and change `notarize: false` to `true`.
 4. Build with:
    ```
    CSC_NAME="Developer ID Application: Your Name (TEAMID)" \
@@ -284,7 +281,7 @@ In Terminal, in the project folder:
 
 ### 11.3 Intel Macs
 
-In `electron-builder.yml`, change `arch: [arm64]` to `arch: [arm64, x64]` and run `npm run dist` again.
+In `packaging.yml`, change `arch: [arm64]` to `arch: [arm64, x64]` and run `npm run dist` again.
 
 ---
 
@@ -307,15 +304,15 @@ Savespace also saves checkpoints automatically when you switch projects, go idle
 
 ## Step 13. Troubleshooting
 
-| Problem                                                           | Fix                                                                                                                                                                                                                                                                                                                                    |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **⌥⌘Space or ⌥⌘S does nothing**                                   | Another app may already use that shortcut. Change it in **Settings → Keyboard** (for example `Control+Alt+Space`) and click elsewhere to save.                                                                                                                                                                                         |
-| **"Savespace could not open its database"** / **Keychain**         | Savespace keeps its database key in your Keychain. If you clicked **Deny** on a Keychain prompt, quit Savespace and open it again, then click **Always Allow**. To start completely fresh (deletes Savespace data only): quit Savespace, then `rm -rf ~/Library/Application\ Support/Savespace` (or `.../Electron` when using `npm start`). |
-| **Restore says "Automation permission needed…"**                  | Step 7: System Settings → Privacy & Security → Automation → Savespace → turn on that app.                                                                                                                                                                                                                                               |
-| **Restore says "File no longer exists"**                          | The file was moved, renamed or deleted since the checkpoint. Savespace never creates files, so it reports this instead.                                                                                                                                                                                                                 |
-| **VS Code files open without jumping to the line**                | Install the `code` command: in VS Code press **⇧⌘P**, type **Shell Command: Install 'code' command in PATH**, press Return. (Cursor: same, with `cursor`.)                                                                                                                                                                             |
-| **JetBrains files don't jump to the line**                        | In the IDE: **Tools → Create Command-line Launcher…**                                                                                                                                                                                                                                                                                  |
-| **No suggestions appear**                                         | Suggestions need a few separate work sessions on the same folder/repo/site. Click **Look again** on the Suggestions page, or create a project yourself (**New project**).                                                                                                                                                              |
-| **Too much or too little is captured**                            | **Privacy → Exclusions:** add websites, folders, apps or title words to ignore. **Settings → Capture:** pause automatic capture.                                                                                                                                                                                                       |
-| **I want to see or delete everything**                            | **Privacy → Export everything (JSON)** opens the export in Finder. **Privacy → Delete all data…** (type DELETE) wipes everything Savespace stored; your files and apps are untouched.                                                                                                                                                   |
-| **The app looks wrong in dark mode / animations are distracting** | Savespace follows **System Settings → Appearance** and **Accessibility → Display → Reduce motion** automatically.                                                                                                                                                                                                                       |
+| Problem                                                           | Fix                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **⌥⌘Space or ⌥⌘S does nothing**                                   | Another app may already use that shortcut. Change it in **Settings → Keyboard** (for example `Control+Alt+Space`) and click elsewhere to save.                                                                                                                                                   |
+| **"Savespace could not open its database"** / **Keychain**        | Savespace keeps its database key in your Keychain. If you clicked **Deny** on a Keychain prompt, quit Savespace and open it again, then click **Always Allow**. To start completely fresh (deletes Savespace data only): quit Savespace, then `rm -rf ~/Library/Application\ Support/Savespace`. |
+| **Restore says "Automation permission needed…"**                  | Step 7: System Settings → Privacy & Security → Automation → Savespace → turn on that app.                                                                                                                                                                                                        |
+| **Restore says "File no longer exists"**                          | The file was moved, renamed or deleted since the checkpoint. Savespace never creates files, so it reports this instead.                                                                                                                                                                          |
+| **VS Code files open without jumping to the line**                | Install the `code` command: in VS Code press **⇧⌘P**, type **Shell Command: Install 'code' command in PATH**, press Return. (Cursor: same, with `cursor`.)                                                                                                                                       |
+| **JetBrains files don't jump to the line**                        | In the IDE: **Tools → Create Command-line Launcher…**                                                                                                                                                                                                                                            |
+| **No suggestions appear**                                         | Suggestions need a few separate work sessions on the same folder/repo/site. Click **Look again** on the Suggestions page, or create a project yourself (**New project**).                                                                                                                        |
+| **Too much or too little is captured**                            | **Privacy → Exclusions:** add websites, folders, apps or title words to ignore. **Settings → Capture:** pause automatic capture.                                                                                                                                                                 |
+| **I want to see or delete everything**                            | **Privacy → Export everything (JSON)** opens the export in Finder. **Privacy → Delete all data…** (type DELETE) wipes everything Savespace stored; your files and apps are untouched.                                                                                                            |
+| **The app looks wrong in dark mode / animations are distracting** | Savespace follows **System Settings → Appearance** and **Accessibility → Display → Reduce motion** automatically.                                                                                                                                                                                |

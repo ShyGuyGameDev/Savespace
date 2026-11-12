@@ -83,7 +83,11 @@ app.whenReady().then(async () => {
     createHandlers(ctx, {
       onSettingsChanged: (keys) => {
         if (keys.some((k) => k.startsWith('hotkey'))) registerHotkeys()
-        if (keys.includes('captureIntervalSec') && !process.env['SAVESPACE_E2E'])
+        // Start capturing once the intro is finished (and restart if the interval changes).
+        if (
+          (keys.includes('captureIntervalSec') || keys.includes('onboardingComplete')) &&
+          !process.env['SAVESPACE_E2E']
+        )
           ctx?.scheduler.start()
         const aiKeys = [
           'aiEnabled',

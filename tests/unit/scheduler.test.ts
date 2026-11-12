@@ -8,6 +8,7 @@ afterEach(() => ctx?.cleanup())
 
 function setup() {
   ctx = tempDb()
+  ctx.store.setSettings({ onboardingComplete: true })
   const a = ctx.store.createProject('Alpha', ['repo:/a'])
   const b = ctx.store.createProject('Beta', ['repo:/b'])
   let clock = new Date(2026, 10, 10, 10, 0, 0)
@@ -110,5 +111,28 @@ describe('capture scheduler', () => {
     await t.sched.onPowerEvent('sleep')
     await t.sched.onPowerEvent('lock')
     expect(t.checkpoints.map((c) => c.trigger)).toEqual(['sleep', 'lock'])
+  })
+
+  it('captures nothing (and asks macOS nothing) until the intro is finished', async () => {
+    const t = setup()
+    ctx.store.setSettings({ onboardingComplete: false })
+    let samples = 0
+    const sched = new CaptureScheduler({
+      store: ctx.store,
+      idleSeconds: () => 0,
+      sample: async () => {
+        samples++
+        return null
+      },
+      checkpoint: async (trigger) => void t.checkpoints.push({ trigger }),
+    })
+    await sched.tick()
+    await sched.onPowerEvent('sleep')
+    await sched.onPowerEvent('quit')
+    expect(samples).toBe(0)
+    expect(t.checkpoints).toHaveLength(0)
+    ctx.store.setSettings({ onboardingComplete: true })
+    await sched.tick()
+    expect(samples).toBe(1)
   })
 })

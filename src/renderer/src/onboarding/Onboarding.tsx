@@ -217,8 +217,8 @@ function AccessibilityStep() {
               Open System Settings
             </Button>
             <span className="text-[12px]">
-              Then turn on <strong className="text-foreground">{APP_NAME}</strong> (or{' '}
-              <em>Electron</em> while developing) under Privacy &amp; Security → Accessibility.
+              Then turn on <strong className="text-foreground">{APP_NAME}</strong> under Privacy
+              &amp; Security → Accessibility.
             </span>
           </>
         )}

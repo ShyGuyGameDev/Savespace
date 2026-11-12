@@ -63,7 +63,8 @@ export class CaptureScheduler {
     this.running = true
     try {
       const settings = this.d.store.getSettings()
-      if (!settings.captureEnabled) return
+      // Nothing is captured until the intro has explained what Savespace reads (and why macOS will ask).
+      if (!settings.captureEnabled || !settings.onboardingComplete) return
       const now = this.now()
 
       // Idle detection first: no sampling while away.
@@ -142,7 +143,8 @@ export class CaptureScheduler {
 
   /** Power events: lid close / sleep / screen lock / quit. */
   async onPowerEvent(trigger: 'sleep' | 'lock' | 'quit'): Promise<void> {
-    if (!this.d.store.getSettings().captureEnabled) return
+    const s = this.d.store.getSettings()
+    if (!s.captureEnabled || !s.onboardingComplete) return
     await this.d.checkpoint(trigger, this.currentProject ?? undefined)
   }
 

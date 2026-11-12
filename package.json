@@ -27,7 +27,7 @@
     "test:e2e": "electron-vite build && env -u ELECTRON_RUN_AS_NODE playwright test",
     "db:generate": "drizzle-kit generate",
     "audit:safety": "node scripts/safety-audit.mjs",
-    "dist": "node scripts/fetch-ollama.mjs && node scripts/build-apple-ai.mjs && npm run build && electron-builder --mac dmg --arm64",
+    "dist": "node scripts/fetch-ollama.mjs && node scripts/build-apple-ai.mjs && npm run build && electron-builder --config packaging.yml --mac dmg --arm64",
     "postinstall": "electron-builder install-app-deps && node scripts/fetch-ollama.mjs && node scripts/build-apple-ai.mjs",
     "fetch:ollama": "node scripts/fetch-ollama.mjs",
     "build:apple-ai": "node scripts/build-apple-ai.mjs",
