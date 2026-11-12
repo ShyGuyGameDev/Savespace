@@ -11,7 +11,9 @@ test('edit a checkpoint: change the summary and remove a saved item', async () =
   await page.getByRole('button', { name: /Remove Add token bucket limiter #88/ }).click()
   await page.screenshot({ path: 'test-results/checkpoint-edit.png' })
   await page.getByRole('button', { name: 'Save changes' }).click()
-  await expect(page.getByText('You were adding rate limits to the public API.').first()).toBeVisible()
+  await expect(
+    page.getByText('You were adding rate limits to the public API.').first(),
+  ).toBeVisible()
   await expect(page.getByText('Add token bucket limiter #88')).toHaveCount(0)
   await app.close()
 })
@@ -27,7 +29,9 @@ test('edit a project (name, colour, what belongs) and delete it; merge/split are
   await page.getByRole('radio', { name: 'Colour #a35ce8' }).click()
   await page.getByLabel('Add a folder or website').fill('https://www.webflow.com/dashboard')
   await page.getByRole('button', { name: 'Add', exact: true }).click()
-  await expect(page.getByRole('list', { name: 'What belongs to this project' }).getByText('webflow.com')).toBeVisible()
+  await expect(
+    page.getByRole('list', { name: 'What belongs to this project' }).getByText('webflow.com'),
+  ).toBeVisible()
   await page.screenshot({ path: 'test-results/project-edit.png' })
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('heading', { name: 'Website relaunch' })).toBeVisible()
@@ -41,5 +45,37 @@ test('edit a project (name, colour, what belongs) and delete it; merge/split are
 
   await page.getByRole('button', { name: /Suggestions/ }).click()
   await expect(page.getByRole('button', { name: /Add to existing/ })).toHaveCount(0)
+  await app.close()
+})
+
+test('Checkpoint now greys out while saving, so it cannot be spammed', async () => {
+  const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
+  const page = await windowByRoute(app, '/')
+  const before = (
+    (await page.evaluate("window.savespace.invoke('checkpoints:list', {})")) as unknown[]
+  ).length
+  const button = page.getByRole('button', { name: /Checkpoint now|Saving/ }).first()
+  // Fire several clicks in the same instant, like an impatient triple click, and look at the
+  // button on the very next frame (in this test mode a checkpoint saves in milliseconds).
+  const during = await button.evaluate(
+    async (b: { click(): void; disabled: boolean; textContent: string | null }) => {
+      b.click()
+      b.click()
+      b.click()
+      await new Promise((r) =>
+        (
+          globalThis as unknown as { requestAnimationFrame(cb: () => void): void }
+        ).requestAnimationFrame(() => r(null)),
+      )
+      return { disabled: b.disabled, text: b.textContent }
+    },
+  )
+  expect(during).toEqual({ disabled: true, text: 'Saving…' })
+  await expect(button).toBeEnabled({ timeout: 15_000 })
+  await expect(button).toHaveText(/Checkpoint now/)
+  const after = (
+    (await page.evaluate("window.savespace.invoke('checkpoints:list', {})")) as unknown[]
+  ).length
+  expect(after - before).toBe(1)
   await app.close()
 })

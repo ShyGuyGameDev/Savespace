@@ -35,7 +35,11 @@ const input: SummaryInput = {
       line: 120,
       focused: true,
     },
-    { kind: 'file', app: 'com.microsoft.VSCode', path: '/Users/me/savespace/src/adapters/index.ts' },
+    {
+      kind: 'file',
+      app: 'com.microsoft.VSCode',
+      path: '/Users/me/savespace/src/adapters/index.ts',
+    },
     {
       kind: 'gitState',
       app: 'git',

@@ -61,7 +61,10 @@ describe('signals and matching', () => {
     p.startsWith('/Users/me/code/savespace') ? '/Users/me/code/savespace' : null
   it('derives repo, host and token signals', () => {
     expect(
-      signalsForRef({ kind: 'file', app: 'x', path: '/Users/me/code/savespace/src/a.ts' }, repoRoot),
+      signalsForRef(
+        { kind: 'file', app: 'x', path: '/Users/me/code/savespace/src/a.ts' },
+        repoRoot,
+      ),
     ).toEqual(['repo:/Users/me/code/savespace'])
     expect(
       signalsForRef({

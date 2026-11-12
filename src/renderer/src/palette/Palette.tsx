@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RestorePlan } from '@shared/schemas'
 import { RestoreRun } from '@/components/RestoreRun'
 import { Kbd } from '@/components/ui/misc'
+import { checkpointNow } from '@/lib/checkpoint'
 import { api, useIpc } from '@/lib/bridge'
 import { cn, relativeTime } from '@/lib/utils'
 
@@ -80,7 +81,8 @@ export function Palette() {
         run: async () => {
           setStatus('Saving…')
           try {
-            const cp = await api('checkpoints:create', {})
+            const cp = await checkpointNow()
+            if (!cp) return // already saving
             setStatus(`Saved ${cp.resources.length} items`)
             setTimeout(hide, 900)
           } catch (e) {

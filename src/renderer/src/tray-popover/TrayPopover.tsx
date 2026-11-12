@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { APP_NAME } from '@shared/constants'
 import { Button } from '@/components/ui/button'
 import { Badge, Kbd } from '@/components/ui/misc'
+import { useCheckpointNow } from '@/lib/checkpoint'
 import { api, useIpc } from '@/lib/bridge'
 import { formatHotkey } from '@/lib/hotkeys'
 import { relativeTime } from '@/lib/utils'
@@ -14,6 +15,7 @@ export function TrayPopover() {
   const suggestions = useIpc('suggestions:list')
   const settings = useIpc('settings:get')
   const [msg, setMsg] = useState<string | null>(null)
+  const { saving, save } = useCheckpointNow()
   const open = async (route: string) => {
     await api('app:openDashboard', { route })
     void api('app:hideWindow')
@@ -49,18 +51,20 @@ export function TrayPopover() {
       <Button
         className="mb-3 w-full justify-between"
         autoFocus
+        disabled={saving}
+        aria-busy={saving}
         onClick={async () => {
           setMsg('Saving…')
           try {
-            const cp = await api('checkpoints:create', {})
-            setMsg(`Saved ${cp.resources.length} items`)
+            const cp = await save()
+            if (cp) setMsg(`Saved ${cp.resources.length} items`)
           } catch (e) {
             setMsg((e as Error).message)
           }
         }}
       >
         <span className="flex items-center gap-1.5">
-          <Bookmark aria-hidden /> Checkpoint now
+          <Bookmark aria-hidden /> {saving ? 'Saving…' : 'Checkpoint now'}
         </span>
         <Kbd className="border-white/30 bg-white/15 text-white">
           {formatHotkey(settings.data?.hotkeyCheckpoint ?? 'Alt+Command+S')}

@@ -76,11 +76,22 @@ export const DEFAULT_SETTINGS = {
   ollamaModel: '' as string,
   aiEnabled: true,
   aiProvider: 'auto' as AiProvider,
+  /** Did the user agree to download the fallback AI model? Skipping the intro counts as yes. */
+  aiDownloadConsent: 'unasked' as 'unasked' | 'yes' | 'no',
   hotkeyPalette: DEFAULT_HOTKEYS.palette as string,
   hotkeyCheckpoint: DEFAULT_HOTKEYS.checkpointNow as string,
   connectorsEnabled: { gmail: false, drive: false, calendar: false } as Record<string, boolean>,
 }
 export type Settings = typeof DEFAULT_SETTINGS
+
+/** The fallback model may be downloaded only with a "yes" (or once the intro is done without an answer). */
+export function aiDownloadAllowed(
+  s: Pick<Settings, 'aiDownloadConsent' | 'onboardingComplete'>,
+): boolean {
+  return (
+    s.aiDownloadConsent === 'yes' || (s.aiDownloadConsent === 'unasked' && s.onboardingComplete)
+  )
+}
 
 export const RESTORE_ITEM_TIMEOUT_MS = 8000
 export const SCRIPT_TIMEOUT_MS = 6000

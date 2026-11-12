@@ -128,7 +128,7 @@ export class OllamaSummarizer implements Summarizer {
   async status(
     selected: string,
     download: AiDownload | null = null,
-  ): Promise<Omit<AiStatus, 'apple' | 'activeSource'>> {
+  ): Promise<Omit<AiStatus, 'apple' | 'activeSource' | 'modelsDir'>> {
     const gb = ramGb()
     const selectedModel = selected || recommendModel()
     const models = await this.listModels()

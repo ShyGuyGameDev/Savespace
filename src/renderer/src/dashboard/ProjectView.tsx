@@ -18,6 +18,7 @@ import { ResourceIcon } from '@/components/ResourceIcon'
 import { RestorePreviewDialog } from '@/components/RestorePreview'
 import { Button } from '@/components/ui/button'
 import { Badge, EmptyState, Kbd, Tooltip } from '@/components/ui/misc'
+import { checkpointNow, useCheckpointNow } from '@/lib/checkpoint'
 import { api, useIpc } from '@/lib/bridge'
 import { formatHotkey } from '@/lib/hotkeys'
 import { appName, groupByApp, refLabel } from '@/lib/refs'
@@ -45,6 +46,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
   const [preview, setPreview] = useState<{ id: string; auto: boolean } | null>(null)
   const [editing, setEditing] = useState(false)
   const settings = useIpc('settings:get')
+  const { saving } = useCheckpointNow()
 
   const items = useMemo(() => list.data ?? [], [list.data])
   useEffect(() => {
@@ -129,11 +131,13 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
               action={
                 <Button
                   variant="secondary"
+                  disabled={saving}
+                  aria-busy={saving}
                   onClick={() =>
-                    api('checkpoints:create', { projectId }).catch((e: Error) => toast(e.message))
+                    void checkpointNow(projectId).catch((e: Error) => toast(e.message))
                   }
                 >
-                  <Bookmark aria-hidden /> Save one now
+                  <Bookmark aria-hidden /> {saving ? 'Saving…' : 'Save one now'}
                 </Button>
               }
             />

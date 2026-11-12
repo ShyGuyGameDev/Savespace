@@ -125,6 +125,9 @@ export function createHandlers(
 
     'ai:status': () => ctx.ai.status(),
     'ai:download': (input) => {
+      // Clicking Yes / Download is the user's consent.
+      if (store.getSettings().aiDownloadConsent !== 'yes')
+        store.setSettings({ aiDownloadConsent: 'yes' })
       store.audit(
         'summarize',
         `Downloading local AI model ${input?.model ?? ctx.ai.selectedModel()} into Savespace's data folder`,

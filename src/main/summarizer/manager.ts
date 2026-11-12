@@ -1,4 +1,4 @@
-import type { Settings } from '@shared/constants'
+import { aiDownloadAllowed, type Settings } from '@shared/constants'
 import type { AiDownload, AiStatus } from '@shared/schemas'
 import type { AppleSummarizer } from './apple'
 import type { AiEngine } from './engine'
@@ -40,7 +40,12 @@ export class AiManager {
         : s.aiProvider !== 'apple' && base.running && base.modelAvailable
           ? 'ollama'
           : 'template'
-    return { ...base, apple, activeSource }
+    const home = process.env['HOME'] ?? ''
+    const modelsDir =
+      home && this.engine.modelsDir.startsWith(home)
+        ? `~${this.engine.modelsDir.slice(home.length)}`
+        : this.engine.modelsDir
+    return { ...base, apple, activeSource, modelsDir }
   }
 
   /** Called at startup and whenever AI settings change. */
@@ -68,7 +73,8 @@ export class AiManager {
       this.log(`[ai] engine failed to start: ${(e as Error).message}`)
       return
     }
-    await this.ensureModel()
+    // Only download with the user's OK ("yes", or the intro finished/skipped without an answer).
+    if (aiDownloadAllowed(s)) await this.ensureModel()
   }
 
   /** Downloads the selected model if it isn't present. Safe to call repeatedly. */

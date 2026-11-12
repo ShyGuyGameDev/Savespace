@@ -169,13 +169,35 @@ describe('AI manager: no download when Apple is available', () => {
     expect(log).toEqual(['stop'])
     expect(m.download).toBeNull()
   })
+  it('downloads only with consent: yes, or the intro finished without an answer', async () => {
+    const run = async (consent: 'unasked' | 'yes' | 'no', onboardingComplete: boolean) => {
+      const { engine } = fakeEngine()
+      ;(engine as { state: string }).state = 'running'
+      const pulls: string[] = []
+      const m = new AiManager(
+        engine as never,
+        { ...ollama, pull: async (model: string) => void pulls.push(model) } as never,
+        () => ({ ...DEFAULT_SETTINGS, aiDownloadConsent: consent, onboardingComplete }),
+        () => {},
+        () => {},
+        { status: async () => ({ available: false, reason: 'deviceNotEligible' }) },
+      )
+      await m.sync()
+      return pulls.length
+    }
+    expect(await run('no', true)).toBe(0) // said No
+    expect(await run('unasked', false)).toBe(0) // still in the intro, not asked yet
+    expect(await run('unasked', true)).toBe(1) // intro skipped/finished without answering = yes
+    expect(await run('yes', false)).toBe(1) // said Yes
+  })
+
   it('starts the engine and fetches the fallback model in the background when Apple is unavailable', async () => {
     const { engine, log } = fakeEngine()
     const pulls: string[] = []
     const m = new AiManager(
       engine as never,
       { ...ollama, pull: async (model: string) => void pulls.push(model) } as never,
-      () => DEFAULT_SETTINGS,
+      () => ({ ...DEFAULT_SETTINGS, aiDownloadConsent: 'yes' as const }),
       () => {},
       () => {},
       { status: async () => ({ available: false, reason: 'deviceNotEligible' }) },

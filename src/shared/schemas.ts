@@ -265,6 +265,8 @@ export const AiStatusSchema = z.object({
   download: AiDownloadSchema.nullable(),
   /** Apple's on-device model (Apple Intelligence). */
   apple: z.object({ available: z.boolean(), reason: z.string().optional() }),
+  /** Where a downloaded model is saved on this Mac (with ~ for the home folder). */
+  modelsDir: z.string(),
   /** Which source new summaries will use right now. */
   activeSource: z.enum(['apple', 'ollama', 'template']),
 })

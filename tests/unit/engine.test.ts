@@ -167,4 +167,24 @@ describe('capture engine', () => {
     const cp = await svc.create('manual')
     expect(cp?.projectId).toBe(p.id)
   })
+
+  it('saves only one checkpoint when asked repeatedly while saving (no spamming)', async () => {
+    ctx = tempDb()
+    const p = ctx.store.createProject('WP', ['repo:/Users/me/code/wp'])
+    const svc = new CheckpointService({
+      store: ctx.store,
+      engine: makeEngine(),
+      summarizer: new TemplateSummarizer(),
+    })
+    const results = await Promise.all([
+      svc.create('manual', p.id),
+      svc.create('manual', p.id),
+      svc.create('manual', p.id),
+    ])
+    expect(new Set(results.map((c) => c?.id)).size).toBe(1)
+    expect(ctx.store.listCheckpoints({ projectId: p.id })).toHaveLength(1)
+    // Once it's done, a new request makes a new checkpoint again.
+    await svc.create('manual', p.id)
+    expect(ctx.store.listCheckpoints({ projectId: p.id })).toHaveLength(2)
+  })
 })

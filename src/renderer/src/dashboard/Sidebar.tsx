@@ -1,7 +1,8 @@
 import { Bookmark, Boxes, CircleDot, Inbox, Plus, Settings, Shield } from 'lucide-react'
 import { APP_NAME } from '@shared/constants'
 import { Button } from '@/components/ui/button'
-import { Badge, Kbd, Tooltip } from '@/components/ui/misc'
+import { Badge, Kbd, Tooltip, Spinner } from '@/components/ui/misc'
+import { useCheckpointNow } from '@/lib/checkpoint'
 import { api, useIpc } from '@/lib/bridge'
 import { cn, relativeTime } from '@/lib/utils'
 import { useState } from 'react'
@@ -57,6 +58,7 @@ export function Sidebar({ route, navigate }: { route: string; navigate: (r: stri
   const ctx = useIpc('app:currentContext', undefined, { refetchInterval: 30_000 })
   const settings = useIpc('settings:get')
   const pending = suggestions.data?.length ?? 0
+  const { saving, save } = useCheckpointNow()
   const [naming, setNaming] = useState(false)
 
   return (
@@ -75,9 +77,16 @@ export function Sidebar({ route, navigate }: { route: string; navigate: (r: stri
           <Button
             className="w-full justify-start"
             variant="secondary"
-            onClick={() => api('checkpoints:create', {}).catch((e: Error) => toast(e.message))}
+            disabled={saving}
+            aria-busy={saving}
+            onClick={() => void save().catch((e: Error) => toast(e.message))}
           >
-            <Bookmark aria-hidden /> Checkpoint now
+            {saving ? (
+              <Spinner className="size-4" label="Saving checkpoint" />
+            ) : (
+              <Bookmark aria-hidden />
+            )}
+            {saving ? 'Saving…' : 'Checkpoint now'}
           </Button>
         </Tooltip>
       </div>

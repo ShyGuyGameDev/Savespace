@@ -105,7 +105,7 @@ The first window explains everything before macOS asks for anything. You can **S
 2. **What stays on your Mac** → read what's remembered and what never is → **Continue**.
 3. **Let Savespace see window titles** → see Step 6.
 4. **Ask your apps what's open** → see Step 7.
-5. **Local summaries, built in** → the AI model starts downloading by itself (see Step 8). Click **Continue**.
+5. **Local summaries, built in** → if your Mac has Apple Intelligence, nothing is needed. Otherwise Savespace asks **Download the AI model?** (about 2 GB, downloads in the background): choose **Yes** or **No thanks**. Skipping this step counts as **Yes**.
 6. **You're set** → click **Start using Savespace**.
 
 ✅ **Worked if:** you now see the dashboard with a sidebar (Projects, Suggestions, Apps, Privacy, Settings).
@@ -161,7 +161,7 @@ You can see these screens again later: **Settings → Show the welcome & permiss
 Savespace picks the best option automatically:
 
 1. **Apple's on-device AI (Apple Intelligence).** This is used first, whenever your Mac has it: macOS 26 or later, Apple silicon, Apple Intelligence turned on. It's already part of macOS, so **nothing downloads and there's no wait**.
-2. **Small built-in model.** On Macs without Apple Intelligence, Savespace quietly downloads a small model (`llama3.2:3b`, about 2 GB, one time) in the background using its built-in engine. Until it's ready you get simple summaries, so nothing is blocked.
+2. **Small built-in model (asks first).** On Macs without Apple Intelligence, Savespace asks before downloading a small model (`llama3.2:3b`, about 2 GB, one time). If you say **Yes** (or skip the intro), it downloads **in the background** while you keep working; until it's ready you get simple summaries. If you say **No**, you get simple summaries, and you can download it later with **Settings → Local AI → Download**.
 
 ✅ **Worked if:** **Settings → Local AI → Now using:** shows **Apple on-device AI** (or **Downloaded model** once the download finishes). New checkpoints show the matching badge next to "What you were doing". Click **Test** to try it.
 

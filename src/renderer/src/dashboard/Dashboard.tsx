@@ -7,7 +7,7 @@ import { AppsView } from './AppsView'
 import { Privacy } from './Privacy'
 import { SettingsView } from './SettingsView'
 import { ShortcutsSheet, useShortcutsSheet } from './ShortcutsSheet'
-import { api } from '@/lib/bridge'
+import { checkpointNow } from '@/lib/checkpoint'
 
 export type Navigate = (r: string) => void
 
@@ -29,7 +29,7 @@ export function Dashboard({ route, navigate }: { route: string; navigate: Naviga
       if (e.key === '?') return sheet.setOpen(true)
       if (e.metaKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
-        void api('checkpoints:create', {}).catch((err: Error) => toast(err.message))
+        void checkpointNow().catch((err: Error) => toast(err.message))
         return
       }
       if (e.metaKey && e.key === ',') {

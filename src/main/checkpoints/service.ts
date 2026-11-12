@@ -20,6 +20,8 @@ export interface CheckpointServiceDeps {
 /** Creates checkpoints: capture → privacy filter → in-use + AI relevance → summary → store. */
 export class CheckpointService {
   private lastFingerprint = new Map<string, { fp: string; at: number }>()
+  /** The checkpoint currently being made; repeat requests share it instead of creating duplicates. */
+  private inFlight: Promise<Checkpoint | null> | null = null
 
   constructor(private readonly d: CheckpointServiceDeps) {}
 
@@ -27,7 +29,20 @@ export class CheckpointService {
    * @param projectId  explicit project, or undefined to infer from what's on screen.
    * Automatic triggers are skipped when nothing changed since the last checkpoint of that project.
    */
-  async create(trigger: CheckpointTrigger, projectId?: string | null): Promise<Checkpoint | null> {
+  create(trigger: CheckpointTrigger, projectId?: string | null): Promise<Checkpoint | null> {
+    // One at a time: a second click / hotkey press while saving gets the same checkpoint.
+    if (this.inFlight) return this.inFlight
+    const p = this.doCreate(trigger, projectId).finally(() => {
+      if (this.inFlight === p) this.inFlight = null
+    })
+    this.inFlight = p
+    return p
+  }
+
+  private async doCreate(
+    trigger: CheckpointTrigger,
+    projectId?: string | null,
+  ): Promise<Checkpoint | null> {
     const { store, engine } = this.d
     const snap = await engine.snapshot()
     const projects = store.listProjects()

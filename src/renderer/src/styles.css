@@ -75,6 +75,20 @@ body,
   cursor: default;
 }
 
+/* The window itself never scrolls; only its panels do. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Keep visually hidden (absolutely positioned) labels inside the scrolling panel they belong to,
+   so they can't stretch the page. */
+.overflow-y-auto,
+.overflow-auto {
+  position: relative;
+}
+
 .drag {
   -webkit-app-region: drag;
 }

@@ -10,13 +10,13 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { APP_NAME, DEFAULT_HOTKEYS } from '@shared/constants'
 import { Button } from '@/components/ui/button'
 import { Badge, Kbd } from '@/components/ui/misc'
 import { api, useIpc } from '@/lib/bridge'
 import { formatHotkey } from '@/lib/hotkeys'
-import { AiDownloadBar, useAiStatus } from '@/components/AiDownload'
+import { AiDownloadBar, DownloadWhere, useAiStatus } from '@/components/AiDownload'
 import { cn } from '@/lib/utils'
 
 const STEPS = ['welcome', 'privacy', 'accessibility', 'automation', 'ai', 'done'] as const
@@ -29,8 +29,21 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const back = () => setStep(STEPS[Math.max(idx - 1, 0)]!)
 
   const finish = async () => {
-    await api('settings:set', { onboardingComplete: true })
+    // Finishing the intro without answering the AI question counts as "yes".
+    const s = await api('settings:get')
+    await api('settings:set', {
+      onboardingComplete: true,
+      ...(s.aiDownloadConsent === 'unasked' ? { aiDownloadConsent: 'yes' as const } : {}),
+    })
     onDone()
+  }
+  const skip = async () => {
+    // Skipping the AI step counts as "yes" (the model then downloads in the background).
+    if (step === 'ai') {
+      const s = await api('settings:get')
+      if (s.aiDownloadConsent === 'unasked') await api('settings:set', { aiDownloadConsent: 'yes' })
+    }
+    next()
   }
 
   return (
@@ -77,7 +90,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           </Button>
           <div className="flex items-center gap-2">
             {step !== 'welcome' && step !== 'privacy' && step !== 'done' && (
-              <Button variant="ghost" onClick={next}>
+              <Button variant="ghost" onClick={() => void skip()}>
                 Skip for now
               </Button>
             )}
@@ -315,22 +328,13 @@ function AutomationStep() {
 
 function AiStep() {
   const { status, download } = useAiStatus()
-  const asked = useRef(false)
+  const settings = useIpc('settings:get')
+  const consent = settings.data?.aiDownloadConsent ?? 'unasked'
+  const answer = async (value: 'yes' | 'no') => {
+    await api('settings:set', { aiDownloadConsent: value })
+    await settings.refetch()
+  }
   const apple = status?.apple.available
-  // Without Apple's on-device model, quietly fetch the small fallback model in the background.
-  useEffect(() => {
-    if (
-      asked.current ||
-      !status ||
-      apple ||
-      !status.installed ||
-      status.modelAvailable ||
-      download?.active
-    )
-      return
-    asked.current = true
-    void api('ai:download')
-  }, [status, apple, download])
   return (
     <Hero icon={<Cpu />} title="Local summaries, built in">
       <p>
@@ -347,19 +351,55 @@ function AiStep() {
         <Badge tone="success">
           <Check className="size-3" aria-hidden /> Ready
         </Badge>
-      ) : status.installed ? (
-        <div className="space-y-2 rounded-lg border border-border p-3 text-[13px]">
-          <p>
-            This Mac can’t use Apple’s on-device AI, so {APP_NAME} is quietly getting a small AI
-            model ready in the background (about 2 GB, one time). You can keep going. Until it’s
-            ready, you’ll get simple summaries.
-          </p>
-          {download && <AiDownloadBar d={download} />}
-        </div>
-      ) : (
+      ) : !status.installed ? (
         <p className="rounded-lg border border-border p-3 text-[13px]">
           You’ll get simple summaries built from each checkpoint.
         </p>
+      ) : consent === 'unasked' ? (
+        <div
+          className="space-y-3 rounded-lg border border-border p-3 text-[13px]"
+          role="group"
+          aria-labelledby="ai-question"
+        >
+          <p id="ai-question" className="font-medium text-foreground">
+            Download the AI model?
+          </p>
+          <p>
+            This Mac can’t use Apple’s on-device AI, so {APP_NAME} needs a small AI model (about 2
+            GB, one time). It{' '}
+            <strong className="text-foreground">downloads in the background</strong>, so you can
+            keep using {APP_NAME} while it finishes. Without it, you get simple summaries.
+          </p>
+          <DownloadWhere dir={status.modelsDir} />
+          <div className="flex gap-2">
+            <Button onClick={() => void answer('yes')}>Yes, download in the background</Button>
+            <Button variant="secondary" onClick={() => void answer('no')}>
+              No thanks
+            </Button>
+          </div>
+        </div>
+      ) : consent === 'yes' ? (
+        <div className="space-y-2 rounded-lg border border-border p-3 text-[13px]" role="status">
+          <p>
+            Downloading in the background. You can keep going; summaries get smarter as soon as it’s
+            ready.
+          </p>
+          {download ? (
+            <AiDownloadBar d={download} dir={status.modelsDir} />
+          ) : (
+            <DownloadWhere dir={status.modelsDir} />
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2 rounded-lg border border-border p-3 text-[13px]" role="status">
+          <p>
+            No problem. You’ll get simple summaries. You can download the AI model any time in
+            Settings → Local AI.
+          </p>
+          <Button size="sm" variant="secondary" onClick={() => void answer('yes')}>
+            Download it after all
+          </Button>
+        </div>
       )}
     </Hero>
   )

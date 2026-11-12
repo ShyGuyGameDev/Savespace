@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { launchApp, windowByRoute } from './helpers'
 
 test('first run shows onboarding, explains permissions, and can be completed', async () => {
-  const { app } = await launchApp()
+  const { app } = await launchApp({ SAVESPACE_DRY_RUN: '1' })
   const page = await windowByRoute(app, '/')
   await expect(page.getByRole('heading', { name: /Welcome to Savespace/ })).toBeVisible()
   await expect(page.getByText(/only ever opens things/)).toBeVisible()
@@ -19,9 +19,46 @@ test('first run shows onboarding, explains permissions, and can be completed', a
   await expect(page.getByRole('heading', { name: /Ask your apps/ })).toBeVisible()
   await page.getByRole('button', { name: 'Skip for now' }).click()
   await expect(page.getByRole('heading', { name: /Local summaries/ })).toBeVisible()
+  // No download without asking: a yes/no question that says it downloads in the background.
+  await expect(page.getByText('Download the AI model?')).toBeVisible()
+  await expect(page.getByText(/downloads in the background/)).toBeVisible()
+  // Says where it downloads to, and from where.
+  await expect(
+    page.getByText(/Saving to .*\/ai\/models on this Mac, downloaded from Ollama’s model library/),
+  ).toBeVisible()
+  await page.screenshot({ path: 'test-results/onboarding-ai-question.png' })
+  await expect(page.getByRole('button', { name: /Yes, download in the background/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'No thanks' })).toBeVisible()
   await page.screenshot({ path: 'test-results/onboarding-5-ai.png' })
   await page.getByRole('button', { name: 'Skip for now' }).click()
   await page.getByRole('button', { name: /Start using Savespace/ }).click()
+  // Skipping the AI question counted as "yes".
+  expect(
+    (await page.evaluate("window.savespace.invoke('settings:get')")) as {
+      aiDownloadConsent: string
+    },
+  ).toMatchObject({ aiDownloadConsent: 'yes' })
   await expect(page.getByRole('navigation', { name: 'Projects and sections' })).toBeVisible()
+  await app.close()
+})
+
+test('saying No to the AI download is remembered and nothing downloads', async () => {
+  const { app } = await launchApp({ SAVESPACE_DRY_RUN: '1' })
+  const page = await windowByRoute(app, '/')
+  for (let i = 0; i < 4; i++)
+    await page
+      .getByRole('button', { name: /Continue|Skip for now/ })
+      .last()
+      .click()
+  await expect(page.getByText('Download the AI model?')).toBeVisible()
+  await page.getByRole('button', { name: 'No thanks' }).click()
+  await expect(page.getByText(/download the AI model any time in Settings/)).toBeVisible()
+  await page.getByRole('button', { name: /Continue/ }).click()
+  await page.getByRole('button', { name: /Start using Savespace/ }).click()
+  expect(
+    (await page.evaluate("window.savespace.invoke('settings:get')")) as {
+      aiDownloadConsent: string
+    },
+  ).toMatchObject({ aiDownloadConsent: 'no' })
   await app.close()
 })

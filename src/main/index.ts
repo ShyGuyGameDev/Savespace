@@ -85,8 +85,13 @@ app.whenReady().then(async () => {
         if (keys.some((k) => k.startsWith('hotkey'))) registerHotkeys()
         if (keys.includes('captureIntervalSec') && !process.env['SAVESPACE_E2E'])
           ctx?.scheduler.start()
-        const aiKeys =
-          keys.includes('aiEnabled') || keys.includes('ollamaModel') || keys.includes('aiProvider')
+        const aiKeys = [
+          'aiEnabled',
+          'ollamaModel',
+          'aiProvider',
+          'aiDownloadConsent',
+          'onboardingComplete',
+        ].some((k) => keys.includes(k))
         if (aiKeys && (!process.env['SAVESPACE_E2E'] || process.env['SAVESPACE_E2E_AI']))
           void ctx?.ai.sync()
         if (keys.includes('launchAtLogin'))

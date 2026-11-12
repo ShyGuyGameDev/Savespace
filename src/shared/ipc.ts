@@ -33,6 +33,7 @@ const SettingsPatchSchema = z
     ollamaModel: z.string().max(200),
     aiEnabled: z.boolean(),
     aiProvider: z.enum(['auto', 'apple', 'downloaded']),
+    aiDownloadConsent: z.enum(['unasked', 'yes', 'no']),
     hotkeyPalette: z.string().min(1).max(60),
     hotkeyCheckpoint: z.string().min(1).max(60),
     connectorsEnabled: z.record(z.string(), z.boolean()),

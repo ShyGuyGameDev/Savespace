@@ -16,7 +16,7 @@ const APPLE_REASONS: Record<string, string> = {
   osTooOld: 'Needs macOS 26 or later.',
   notBundled: 'Not included in this build.',
 }
-import { AiDownloadBar, useAiStatus } from '@/components/AiDownload'
+import { AiDownloadBar, DownloadWhere, useAiStatus } from '@/components/AiDownload'
 
 function Row({
   label,
@@ -269,9 +269,32 @@ export function SettingsView() {
                         </Button>
                       )}
                   </div>
+                  {ai.status?.modelAvailable ? (
+                    <p className="mt-1 text-[12px] text-muted-foreground">
+                      Saved in{' '}
+                      <span className="selectable break-all font-mono text-foreground">
+                        {ai.status.modelsDir}
+                      </span>{' '}
+                      on this Mac.
+                    </p>
+                  ) : (
+                    !ai.download?.active && (
+                      <div className="mt-1">
+                        <DownloadWhere dir={ai.status?.modelsDir} />
+                      </div>
+                    )
+                  )}
+                  {v.aiDownloadConsent === 'no' &&
+                    !ai.status?.modelAvailable &&
+                    !ai.download?.active && (
+                      <p className="mt-1 text-[12px] text-muted-foreground">
+                        You chose not to download the AI model, so summaries are simple. Click
+                        Download to get it; it downloads in the background.
+                      </p>
+                    )}
                   {ai.download && ai.download.status !== 'success' && (
                     <div className="mt-2">
-                      <AiDownloadBar d={ai.download} />
+                      <AiDownloadBar d={ai.download} dir={ai.status?.modelsDir} />
                     </div>
                   )}
                 </div>
