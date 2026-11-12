@@ -1,4 +1,5 @@
 import { DOWNLOAD_URL } from './config'
+import { Logo } from './Logo'
 
 function DownloadIcon() {
   return (
@@ -18,6 +19,7 @@ export function App() {
         <span className="blob blob-d" />
       </div>
       <section className="hero">
+        <Logo className="logo" />
         <h1 className="title">Savespace</h1>
         <a className="download" href={DOWNLOAD_URL} download>
           <DownloadIcon />

@@ -110,7 +110,11 @@ app.whenReady().then(async () => {
   // Local AI is part of the app: start the bundled engine and fetch the model automatically.
   if (!process.env['SAVESPACE_E2E'] || process.env['SAVESPACE_E2E_AI']) void ctx.ai.sync()
   showDashboard(settings.onboardingComplete ? '/' : '/onboarding')
-  if (process.platform === 'darwin') app.dock?.show()
+  if (process.platform === 'darwin') {
+    // When running from source, show the Savespace icon instead of Electron's (packaged apps have it built in).
+    if (!app.isPackaged) app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'))
+    app.dock?.show()
+  }
 })
 
 export function registerHotkeys(): void {

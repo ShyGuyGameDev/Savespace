@@ -45,6 +45,11 @@ export default tseslint.config(
     },
   },
   {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: { require: 'readonly', __dirname: 'readonly', Buffer: 'readonly', console: 'readonly', process: 'readonly' } },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['scripts/**/*.mjs'],
     languageOptions: { globals: { process: 'readonly', URL: 'readonly', console: 'readonly', fetch: 'readonly', Buffer: 'readonly' } },
   },

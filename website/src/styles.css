@@ -85,6 +85,15 @@ body {
   text-align: center;
 }
 
+.logo {
+  width: clamp(56px, 9vw, 84px);
+  height: auto;
+  color: var(--ink);
+  filter: drop-shadow(0 4px 24px rgb(0 0 0 / 0.35));
+  /* sits a little closer to the title than the button does */
+  margin-bottom: calc(clamp(28px, 5vh, 44px) * -0.45);
+}
+
 .title {
   margin: 0;
   font-size: clamp(3.25rem, 13vw, 8.5rem);

@@ -26,8 +26,8 @@ export function DownloadWhere({ dir }: { dir?: string }) {
   if (!dir) return null
   return (
     <p className="text-[12px] text-muted-foreground">
-      Saving to <span className="selectable break-all font-mono text-foreground">{dir}</span> on this Mac,
-      downloaded from Ollama’s model library (registry.ollama.ai).
+      Saving to <span className="selectable break-all font-mono text-foreground">{dir}</span> on
+      this Mac, downloaded from Ollama’s model library (registry.ollama.ai).
     </p>
   )
 }

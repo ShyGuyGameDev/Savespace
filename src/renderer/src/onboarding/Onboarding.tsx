@@ -8,10 +8,10 @@ import {
   EyeOff,
   Lock,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { APP_NAME, DEFAULT_HOTKEYS } from '@shared/constants'
+import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/button'
 import { Badge, Kbd } from '@/components/ui/misc'
 import { api, useIpc } from '@/lib/bridge'
@@ -127,7 +127,7 @@ function Hero({ icon, title, children }: { icon: ReactNode; title: string; child
 
 function Welcome() {
   return (
-    <Hero icon={<Sparkles />} title={`Welcome to ${APP_NAME}`}>
+    <Hero icon={<Logo className="!size-7" />} title={`Welcome to ${APP_NAME}`}>
       <p>
         When you step away from a project, {APP_NAME} saves a{' '}
         <strong className="text-foreground">checkpoint</strong>: which apps, files, tabs, drafts and
