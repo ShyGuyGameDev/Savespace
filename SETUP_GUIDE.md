@@ -258,19 +258,22 @@ In Terminal, in the project folder:
 
 ### 11.1 Install it
 
-1. Double-click `Savespace-0.1.0-arm64.dmg`, then drag **Savespace** to **Applications**.
+1. Double-click `Savespace-arm64.dmg`, then drag **Savespace** to **Applications**.
 2. Open **Applications** and double-click **Savespace**.
-3. Because this build is **unsigned**, macOS says _"Savespace" can't be opened_ / _cannot verify the developer_. Click **Done** (not Move to Trash).
-4. Open **System Settings → Privacy & Security**, scroll to **Security**, find _"Savespace" was blocked…_, click **Open Anyway**, and confirm with your password.
-5. Grant permissions again for the installed app (Steps 6–7). This time the list says **Savespace**, not Electron.
+3. Because the build isn't signed with a paid Apple Developer ID, macOS says **"Savespace" Not Opened. Apple could not verify "Savespace" is free of malware…**. Click **Done** (not Move to Trash).
+4. Open **System Settings → Privacy & Security**, scroll down to **Security**, find **"Savespace" was blocked to protect your Mac**, click **Open Anyway**, and confirm with your password or Touch ID. You only do this once.
+5. If macOS asks **Savespace wants to use your confidential information stored in "Savespace Safe Storage"**, enter your Mac password and click **Always Allow**. This is the Keychain entry that protects Savespace's encrypted data. It can appear again after installing a new unsigned build.
+6. Grant permissions for the installed app (Steps 6–7). The list says **Savespace**.
 
-**What "unsigned" means:** the app works normally. macOS just can't confirm who made it, so you get the warning once. Permissions you grant are tied to this exact build; after installing a **new** unsigned build you may need to switch Accessibility off and on again.
+**What "not signed with a Developer ID" means:** the app works normally. It does carry a valid free (ad-hoc) signature, which seals the app so macOS doesn't call it "damaged". But macOS can't confirm who made it, so you see the warning once. Permissions and the Keychain entry are tied to the exact build, so after installing a **new** unsigned build you may need to re-allow them.
+
+❗ **"Savespace.app is damaged and can't be opened":** you have an old build from before the signing fix. Download the latest `.dmg` again. As a last resort for a build you trust, run `xattr -dr com.apple.quarantine /Applications/Savespace.app` in Terminal, then open it.
 
 ### 11.2 Signing and notarization (only if you have an Apple Developer account, $99/year)
 
 1. In Xcode → Settings → Accounts, add your Apple ID and create a **Developer ID Application** certificate (or download it from developer.apple.com → Certificates).
 2. Create an app-specific password at **https://account.apple.com → Sign-In and Security → App-Specific Passwords**.
-3. In `electron-builder.yml`, delete the line `identity: null` and change `notarize: false` to `notarize: true`.
+3. In `electron-builder.yml`, replace `identity: '-'` with your certificate name (e.g. `identity: 'Developer ID Application: Your Name (TEAMID)'`), change `hardenedRuntime: false` to `true`, and change `notarize: false` to `true`.
 4. Build with:
    ```
    CSC_NAME="Developer ID Application: Your Name (TEAMID)" \

@@ -31,12 +31,16 @@ mac:
       arch: [arm64]
   icon: build/icon.png
   minimumSystemVersion: '15.0'
-  hardenedRuntime: true
+  # Hardened runtime needs a Developer ID signature; with an ad-hoc signature it blocks the app's own frameworks.
+  # Set to true together with a real identity (see SETUP_GUIDE.md step 11.2).
+  hardenedRuntime: false
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # Unsigned unless CSC_NAME / CSC_LINK is set (see SETUP_GUIDE.md, step 11).
-  identity: null
+  # "-" = ad-hoc signature: free, no Apple account. It seals the whole app so macOS doesn't call the
+  # download "damaged". (Without a Developer ID it's still unverified: users click Open Anyway once.)
+  # For a real signature, set this to your "Developer ID Application: …" name (SETUP_GUIDE.md, step 11.2).
+  identity: '-'
   notarize: false
   extendInfo:
     NSAppleEventsUsageDescription: Savespace asks your apps which files, tabs and drafts are open (read-only) so it can reopen them later. It never changes anything in them.
