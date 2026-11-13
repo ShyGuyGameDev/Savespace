@@ -32,7 +32,13 @@ export function recommendModel(): string {
   return FALLBACK_MODEL
 }
 
-export const SYSTEM_PROMPT = `You write a short recap for someone returning to their work. Write 2 or 3 natural sentences in second person ("You were ..."). Mention the project, what was being edited (file names, not full paths), and where things stood (branch, uncommitted changes, related tickets, pages or drafts). Only name files that appear under "Open files". Describe only the state of the work. Never give advice, next steps, decisions or questions. Use only the facts given. Plain text only, no headings, no lists.`
+export function hasRecapEvidence(input: SummaryInput): boolean {
+  return input.refs.some((ref) =>
+    ['file', 'url', 'doc', 'draft', 'message', 'note', 'gitState'].includes(ref.kind),
+  )
+}
+
+export const SYSTEM_PROMPT = `Write a useful two-sentence recap for someone returning to a project. When a named issue or PR describes the task, lead with that task in everyday words, then name the focused resource as the stopping point. Copy filenames and line numbers exactly from the checkpoint. Otherwise use the focused resource or document title as your strongest clue. If intent is uncertain, say "You were looking at" and name the strongest clue. Open files and changed-file counts do not establish what was edited, completed, decided, or tested. Do not invent findings or give advice. Only name files listed under Open files. Plain text, no headings or lists.`
 
 /** Turns checkpoint metadata into a compact fact sheet (titles, paths, branches only). */
 export function factSheet(input: SummaryInput): string {
@@ -43,7 +49,10 @@ export function factSheet(input: SummaryInput): string {
     if (refs.length)
       lines.push(
         `${label}:`,
-        ...refs.slice(0, max).map((r) => `- ${fmt(r)}${r.focused ? ' (focused)' : ''}`),
+        ...[...refs]
+          .sort((a, b) => Number(!!b.focused) - Number(!!a.focused))
+          .slice(0, max)
+          .map((r) => `- ${fmt(r)}${r.focused ? ' (focused)' : ''}`),
       )
   }
   const by = (k: ResourceRef['kind'][]) => input.refs.filter((r) => k.includes(r.kind))
@@ -205,6 +214,8 @@ export class OllamaSummarizer implements Summarizer {
   }
 
   async summarize(input: SummaryInput) {
+    if (!hasRecapEvidence(input))
+      return { text: templateSummary(input), source: 'template' as const }
     const fallback = { text: templateSummary(input), source: 'template' as const }
     if (!this.enabled()) return fallback
     const model = this.getModel() || recommendModel()

@@ -24,11 +24,13 @@ export function RestorePreviewDialog({
   open,
   onOpenChange,
   autoStart = false,
+  first,
 }: {
   checkpointId: string | null
   open: boolean
   onOpenChange: (o: boolean) => void
   autoStart?: boolean
+  first?: number
 }) {
   const [plan, setPlan] = useState<RestorePlan | null>(null)
   const [unchecked, setUnchecked] = useState<Set<number>>(new Set())
@@ -44,11 +46,13 @@ export function RestorePreviewDialog({
     api('restore:preview', { checkpointId })
       .then((p) => {
         setPlan(p)
+        if (first !== undefined)
+          setUnchecked(new Set(p.items.flatMap((_, i) => (i === first ? [] : [i]))))
         if (autoStart) void start(p, new Set())
       })
       .catch((e: Error) => setError(e.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, checkpointId])
+  }, [open, checkpointId, first])
 
   const start = async (p: RestorePlan, skip: Set<number>) => {
     const r = await api('restore:run', { checkpointId: p.checkpointId, skip: [...skip] })

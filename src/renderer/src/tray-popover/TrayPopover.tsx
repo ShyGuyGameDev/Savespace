@@ -38,7 +38,7 @@ export function TrayPopover() {
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {APP_NAME}
         </p>
-        <CurrentProject />
+        <CurrentProject compact />
         {!tracking.on && (
           <p className="mt-1 text-xs text-muted-foreground">Nothing is being tracked</p>
         )}

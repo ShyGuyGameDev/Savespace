@@ -1,3 +1,4 @@
+import { HandoffFields, readHandoff, writeHandoff } from '@/components/HandoffFields'
 import {
   Archive,
   Bookmark,
@@ -14,6 +15,7 @@ import {
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useEffect, useMemo, useState } from 'react'
 import type { Checkpoint, Project } from '@shared/schemas'
+import { ResumeBrief } from '@/components/ResumeBrief'
 import { ProgressRecap } from '@/components/ProgressRecap'
 import { ResourceIcon } from '@/components/ResourceIcon'
 import { RestorePreviewDialog } from '@/components/RestorePreview'
@@ -45,7 +47,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
   const project = projects.data?.find((p) => p.id === projectId) ?? null
   const list = useIpc('checkpoints:list', projectId ? { projectId, limit: 200 } : { limit: 200 })
   const [selected, setSelected] = useState<string | null>(routeCheckpoint)
-  const [preview, setPreview] = useState<{ id: string; auto: boolean } | null>(null)
+  const [preview, setPreview] = useState<{ id: string; auto: boolean; first?: number } | null>(null)
   const [editing, setEditing] = useState(false)
   const settings = useIpc('settings:get')
   const { saving } = useCheckpointNow()
@@ -197,7 +199,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
             key={current.id}
             cp={current}
             projects={projects.data ?? []}
-            onPreview={(auto) => setPreview({ id: current.id, auto })}
+            onPreview={(auto, first) => setPreview({ id: current.id, auto, first })}
           />
         ) : (
           <EmptyState
@@ -211,6 +213,7 @@ export function ProjectView({ route, navigate }: { route: string; navigate: (r: 
       <RestorePreviewDialog
         checkpointId={preview?.id ?? null}
         autoStart={preview?.auto ?? false}
+        first={preview?.first}
         open={!!preview}
         onOpenChange={(o) => !o && setPreview(null)}
       />
@@ -283,7 +286,7 @@ function CheckpointDetail({
 }: {
   cp: Checkpoint
   projects: Project[]
-  onPreview: (auto: boolean) => void
+  onPreview: (auto: boolean, first?: number) => void
 }) {
   const ai = useIpc('ai:status', undefined, { staleTime: 60_000 })
   const visible = cp.resources.filter((r) => r.kind !== 'windowFrame')
@@ -296,12 +299,11 @@ function CheckpointDetail({
   const earlierHandoff = earlier.data?.find(
     (item) => item.createdAt <= cp.createdAt && item.handoff,
   )
-  const focused = visible.filter((ref) => ref.focused && ref.kind !== 'app')
   const frames = cp.resources.filter((r) => r.kind === 'windowFrame').length
   const project = projects.find((p) => p.id === cp.projectId)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(cp.summary)
-  const [handoff, setHandoff] = useState(cp.handoff ?? '')
+  const [handoff, setHandoff] = useState(() => readHandoff(cp.handoff))
   const changes = useIpc(
     'checkpoints:gitChanges',
     { id: cp.id },
@@ -311,7 +313,7 @@ function CheckpointDetail({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const startEdit = () => {
     setDraft(cp.summary)
-    setHandoff(cp.handoff ?? '')
+    setHandoff(readHandoff(cp.handoff))
     setRemoved(new Set())
     setEditing(true)
   }
@@ -319,7 +321,10 @@ function CheckpointDetail({
     await api('checkpoints:update', {
       id: cp.id,
       summary: draft.trim() !== cp.summary ? draft.trim() : undefined,
-      handoff: handoff.trim() !== (cp.handoff ?? '') ? handoff.trim() : undefined,
+      handoff:
+        writeHandoff(handoff) !== writeHandoff(readHandoff(cp.handoff))
+          ? writeHandoff(handoff)
+          : undefined,
       removeItems: removed.size ? [...removed] : undefined,
     })
     setEditing(false)
@@ -343,9 +348,9 @@ function CheckpointDetail({
           <span>·</span>
           <span>{TRIGGER_LABEL[cp.trigger]}</span>
         </div>
-        <div className="mb-5 flex items-center gap-2">
+        <div className="mb-5 flex flex-wrap items-center gap-2">
           <ReassignMenu cp={cp} projects={projects} current={project} />
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex flex-wrap gap-2">
             {editing ? (
               <>
                 <Button variant="ghost" onClick={() => setEditing(false)}>
@@ -367,8 +372,12 @@ function CheckpointDetail({
                     </>
                   }
                 >
-                  <Button variant="secondary" onClick={() => onPreview(false)}>
-                    Preview restore
+                  <Button
+                    variant="secondary"
+                    aria-label="Preview restore"
+                    onClick={() => onPreview(false)}
+                  >
+                    Preview
                   </Button>
                 </Tooltip>
                 <Tooltip
@@ -387,188 +396,168 @@ function CheckpointDetail({
           </div>
         </div>
 
-        {(cp.handoff || earlierHandoff || editing) && (
-          <section className="mb-4 rounded-xl border border-border p-4">
-            <h2 className="mb-1 text-[13px] font-semibold">
-              {cp.handoff || editing ? 'Your handoff' : 'Earlier handoff'}
+        <ResumeBrief
+          checkpoint={cp}
+          projectName={project?.name}
+          earlierHandoff={earlierHandoff}
+          onOpen={(index) => onPreview(false, index)}
+        />
+        {editing && (
+          <div className="mb-4">
+            <HandoffFields value={handoff} onChange={setHandoff} />
+          </div>
+        )}
+        <ProgressRecap checkpoint={cp} />
+        <details className="mb-4" open={editing || undefined}>
+          <summary className="mb-3 cursor-pointer text-sm font-medium">
+            Checkpoint evidence and saved items
+          </summary>
+          {!!changes.data?.length && (
+            <section className="mb-4 rounded-xl border border-border p-4">
+              <h2 className="mb-1 text-[13px] font-semibold">
+                Local Git changes since this checkpoint
+              </h2>
+              <ul className="space-y-1 text-sm">
+                {changes.data.map(
+                  ({ repoPath, before, now }) =>
+                    before.kind === 'gitState' &&
+                    now.kind === 'gitState' && (
+                      <li key={repoPath} title={repoPath}>
+                        {repoPath.split('/').pop()} · {before.branch} → {now.branch} ·{' '}
+                        {before.dirtyFiles ?? 0} → {now.dirtyFiles ?? 0} changed files
+                        {before.head &&
+                          now.head &&
+                          before.head !== now.head &&
+                          ` · Commit ${before.head.slice(0, 7)} → ${now.head.slice(0, 7)}`}
+                        {(before.ahead !== now.ahead || before.behind !== now.behind) &&
+                          ` · Upstream: ${before.ahead ?? '?'} ahead / ${before.behind ?? '?'} behind → ${now.ahead ?? '?'} ahead / ${now.behind ?? '?'} behind`}
+                      </li>
+                    ),
+                )}
+              </ul>
+            </section>
+          )}
+          <section
+            aria-labelledby="wywd"
+            className="mb-6 rounded-xl border border-border bg-muted/40 p-4"
+          >
+            <h2
+              id="wywd"
+              className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              What you were doing
+              <Badge tone={cp.summarySource === 'template' ? 'neutral' : 'accent'}>
+                {cp.summarySource === 'apple' ? (
+                  <>
+                    <Cpu className="size-3" aria-hidden /> Apple on-device AI
+                  </>
+                ) : cp.summarySource === 'ollama' ? (
+                  <>
+                    <Cpu className="size-3" aria-hidden /> Local AI
+                  </>
+                ) : (
+                  'Simple summary'
+                )}
+              </Badge>
             </h2>
             {editing ? (
               <textarea
-                aria-label="Your handoff"
-                value={handoff}
-                maxLength={1000}
-                rows={2}
-                onChange={(e) => setHandoff(e.target.value)}
-                className="w-full rounded-md border border-border bg-background p-2 text-sm"
+                aria-label="What you were doing"
+                value={draft}
+                maxLength={2000}
+                rows={4}
+                onChange={(e) => setDraft(e.target.value)}
+                className="selectable w-full resize-y rounded-md border border-border bg-background p-2 text-[14px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               />
             ) : (
-              <p className="selectable whitespace-pre-wrap break-words text-sm">
-                {cp.handoff ?? earlierHandoff?.handoff}
-              </p>
+              <p className="selectable text-[14px] leading-relaxed">{cp.summary}</p>
             )}
-          </section>
-        )}
-        <ProgressRecap checkpoint={cp} />
-        {!!focused.length && (
-          <section className="mb-4 rounded-xl border border-border p-4">
-            <h2 className="mb-1 text-[13px] font-semibold">In focus when saved</h2>
-            <ul className="space-y-1 text-sm">
-              {focused.slice(0, 4).map((ref, index) => (
-                <li key={index} className="flex min-w-0 items-center gap-2">
-                  <ResourceIcon kind={ref.kind} />
-                  <span className="truncate" title={refLabel(ref).secondary}>
-                    {refLabel(ref).primary}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {!!changes.data?.length && (
-          <section className="mb-4 rounded-xl border border-border p-4">
-            <h2 className="mb-1 text-[13px] font-semibold">
-              Local Git changes since this checkpoint
-            </h2>
-            <ul className="space-y-1 text-sm">
-              {changes.data.map(
-                ({ repoPath, before, now }) =>
-                  before.kind === 'gitState' &&
-                  now.kind === 'gitState' && (
-                    <li key={repoPath} title={repoPath}>
-                      {repoPath.split('/').pop()} · {before.branch} → {now.branch} ·{' '}
-                      {before.dirtyFiles ?? 0} → {now.dirtyFiles ?? 0} changed files
-                      {before.head &&
-                        now.head &&
-                        before.head !== now.head &&
-                        ` · Commit ${before.head.slice(0, 7)} → ${now.head.slice(0, 7)}`}
-                      {(before.ahead !== now.ahead || before.behind !== now.behind) &&
-                        ` · Upstream: ${before.ahead ?? '?'} ahead / ${before.behind ?? '?'} behind → ${now.ahead ?? '?'} ahead / ${now.behind ?? '?'} behind`}
-                    </li>
-                  ),
+            {cp.summarySource === 'template' &&
+              ai.data?.activeSource === 'template' &&
+              ai.data.download?.active && (
+                <p className="mt-2 text-[12px] text-muted-foreground">
+                  Richer recaps start once the built-in AI model finishes downloading (
+                  <a href="#/settings" className="text-primary underline-offset-2 hover:underline">
+                    see progress
+                  </a>
+                  ).
+                </p>
               )}
-            </ul>
           </section>
-        )}
-        <section
-          aria-labelledby="wywd"
-          className="mb-6 rounded-xl border border-border bg-muted/40 p-4"
-        >
-          <h2
-            id="wywd"
-            className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground"
-          >
-            What you were doing
-            <Badge tone={cp.summarySource === 'template' ? 'neutral' : 'accent'}>
-              {cp.summarySource === 'apple' ? (
-                <>
-                  <Cpu className="size-3" aria-hidden /> Apple on-device AI
-                </>
-              ) : cp.summarySource === 'ollama' ? (
-                <>
-                  <Cpu className="size-3" aria-hidden /> Local AI
-                </>
-              ) : (
-                'Simple summary'
-              )}
-            </Badge>
-          </h2>
-          {editing ? (
-            <textarea
-              aria-label="What you were doing"
-              value={draft}
-              maxLength={2000}
-              rows={4}
-              onChange={(e) => setDraft(e.target.value)}
-              className="selectable w-full resize-y rounded-md border border-border bg-background p-2 text-[14px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            />
-          ) : (
-            <p className="selectable text-[14px] leading-relaxed">{cp.summary}</p>
-          )}
-          {cp.summarySource === 'template' &&
-            ai.data?.activeSource === 'template' &&
-            ai.data.download?.active && (
-              <p className="mt-2 text-[12px] text-muted-foreground">
-                Richer recaps start once the built-in AI model finishes downloading (
-                <a href="#/settings" className="text-primary underline-offset-2 hover:underline">
-                  see progress
-                </a>
-                ).
-              </p>
-            )}
-        </section>
 
-        <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Saved items{' '}
-          <span className="font-normal normal-case">
-            ({visible.length}
-            {frames ? `, plus ${frames} window position${frames === 1 ? '' : 's'}` : ''})
-          </span>
-        </h2>
-        {groups.length === 0 && (
-          <p className="text-muted-foreground">No items were captured in this checkpoint.</p>
-        )}
-        <div className="space-y-4">
-          {groups.map(([app, rows]) => (
-            <section key={app}>
-              <h3 className="mb-1 px-1 text-[13px] font-medium">{appName(app)}</h3>
-              <ul className="rounded-lg border border-border">
-                {rows.map(({ ref }, i) => {
-                  const l = refLabel(ref)
-                  const idx = cp.resources.indexOf(ref)
-                  const gone = removed.has(idx)
-                  return (
-                    <li
-                      key={i}
-                      className={cn(
-                        'flex items-center gap-2.5 px-3 py-2',
-                        i > 0 && 'border-t border-border',
-                        gone && 'opacity-50 [&_p]:line-through',
-                      )}
-                    >
-                      <ResourceIcon kind={ref.kind} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px]">{l.primary}</p>
-                        {l.secondary && (
-                          <p className="selectable truncate text-[12px] text-muted-foreground">
-                            {l.secondary}
-                          </p>
+          <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Saved items{' '}
+            <span className="font-normal normal-case">
+              ({visible.length}
+              {frames ? `, plus ${frames} window position${frames === 1 ? '' : 's'}` : ''})
+            </span>
+          </h2>
+          {groups.length === 0 && (
+            <p className="text-muted-foreground">No items were captured in this checkpoint.</p>
+          )}
+          <div className="space-y-4">
+            {groups.map(([app, rows]) => (
+              <section key={app}>
+                <h3 className="mb-1 px-1 text-[13px] font-medium">{appName(app)}</h3>
+                <ul className="rounded-lg border border-border">
+                  {rows.map(({ ref }, i) => {
+                    const l = refLabel(ref)
+                    const idx = cp.resources.indexOf(ref)
+                    const gone = removed.has(idx)
+                    return (
+                      <li
+                        key={i}
+                        className={cn(
+                          'flex items-center gap-2.5 px-3 py-2',
+                          i > 0 && 'border-t border-border',
+                          gone && 'opacity-50 [&_p]:line-through',
                         )}
-                      </div>
-                      {ref.focused && !editing && <Badge tone="accent">in focus</Badge>}
-                      {editing && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          aria-label={gone ? `Keep ${l.primary}` : `Remove ${l.primary}`}
-                          onClick={() =>
-                            setRemoved((r) => {
-                              const n = new Set(r)
-                              if (n.has(idx)) n.delete(idx)
-                              else n.add(idx)
-                              return n
-                            })
-                          }
-                        >
-                          {gone ? 'Undo' : <X aria-hidden />}
-                        </Button>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
-        <div className="mt-8 flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-danger"
-            onClick={() => setConfirmDelete(true)}
-          >
-            <Trash2 aria-hidden /> Delete checkpoint
-          </Button>
-        </div>
+                      >
+                        <ResourceIcon kind={ref.kind} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px]">{l.primary}</p>
+                          {l.secondary && (
+                            <p className="selectable truncate text-[12px] text-muted-foreground">
+                              {l.secondary}
+                            </p>
+                          )}
+                        </div>
+                        {ref.focused && !editing && <Badge tone="accent">in focus</Badge>}
+                        {editing && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            aria-label={gone ? `Keep ${l.primary}` : `Remove ${l.primary}`}
+                            onClick={() =>
+                              setRemoved((r) => {
+                                const n = new Set(r)
+                                if (n.has(idx)) n.delete(idx)
+                                else n.add(idx)
+                                return n
+                              })
+                            }
+                          >
+                            {gone ? 'Undo' : <X aria-hidden />}
+                          </Button>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
+          <div className="mt-8 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-danger"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 aria-hidden /> Delete checkpoint
+            </Button>
+          </div>
+        </details>
         <DeleteCheckpointDialog
           cp={cp}
           project={project}

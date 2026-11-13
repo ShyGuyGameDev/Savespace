@@ -197,6 +197,7 @@ test('deleting a checkpoint asks first, and Cancel keeps it', async () => {
   const count = async () =>
     ((await page.evaluate("window.savespace.invoke('checkpoints:list', {})")) as unknown[]).length
   const before = await count()
+  await page.getByText('Checkpoint evidence and saved items').click()
   await page.getByRole('button', { name: 'Delete checkpoint' }).click()
   const dialog = page.getByRole('dialog', { name: 'Delete this checkpoint?' })
   await expect(dialog).toBeVisible()

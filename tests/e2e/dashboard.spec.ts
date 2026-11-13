@@ -8,6 +8,7 @@ test.describe('dashboard', () => {
     await expect(page.getByRole('navigation', { name: 'Projects and sections' })).toBeVisible()
     await page.getByRole('button', { name: /Atlas API/ }).click()
     await expect(page.getByRole('heading', { name: 'Atlas API' })).toBeVisible()
+    await page.getByText('Checkpoint evidence and saved items').click()
     await expect(page.getByText('What you were doing')).toBeVisible()
     await expect(page.getByText(/editing server\.ts around line 42/).first()).toBeVisible()
     await page.screenshot({ path: 'test-results/dashboard-detail.png' })
@@ -171,11 +172,11 @@ test('selects the current project and shows a saved handoff on return', async ()
       dialog.getByRole('combobox', { name: 'Project', exact: true }).locator('option:checked'),
     ).toHaveText('Atlas API')
     const note = 'Ruled out caching. Compare the retry headers next.'
-    await dialog.getByLabel('Handoff note').fill(note)
+    await dialog.getByLabel('Where did you stop?').fill(note)
     await dialog.getByRole('button', { name: 'Save handoff' }).click()
     await expect(dialog).toBeHidden()
     await page.getByRole('button', { name: /Atlas API/ }).click()
-    await expect(page.getByRole('heading', { name: 'Your handoff' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Resume brief' })).toBeVisible()
     await expect(page.getByText(note, { exact: true })).toBeVisible()
   } finally {
     await app.close()

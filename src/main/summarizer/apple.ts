@@ -1,6 +1,6 @@
 import { SafeExecError, type SafeExec } from '../safe-exec'
 import { templateSummary } from './template'
-import { cleanSummary, factSheet, SYSTEM_PROMPT } from './ollama'
+import { cleanSummary, factSheet, hasRecapEvidence, SYSTEM_PROMPT } from './ollama'
 import type { SummaryInput } from './types'
 
 export interface AppleStatus {
@@ -69,7 +69,7 @@ export class AppleSummarizer {
 
   /** Returns null when Apple's model can't be used right now (caller falls back). */
   async summarize(input: SummaryInput): Promise<string | null> {
-    if (!(await this.status()).available) return null
+    if (!hasRecapEvidence(input) || !(await this.status()).available) return null
     try {
       const prompt = `Checkpoint facts:\n${factSheet(input)}\n\nWrite the recap.`
       const r = await this.exec.run('apple-ai', ['summarize', SYSTEM_PROMPT, prompt], {
