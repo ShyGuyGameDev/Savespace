@@ -77,8 +77,13 @@ export function Dashboard({ route, navigate }: { route: string; navigate: Naviga
     <div className="flex h-full">
       <Sidebar route={route} navigate={navigate} />
       <main className="relative flex min-w-0 flex-1 flex-col bg-background">
-        <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
-          <CurrentProject requestHandoff={route === '/handoff' ? () => navigate('/') : undefined} />
+        {/* Top bar: empty space drags the window (like the sidebar); its controls stay clickable. */}
+        <div className="drag flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-4">
+          <div className="no-drag min-w-0">
+            <CurrentProject
+              requestHandoff={route === '/handoff' ? () => navigate('/') : undefined}
+            />
+          </div>
           <TrackingToggle className="shrink-0" />
         </div>
         <div className="min-h-0 flex-1">{view}</div>
