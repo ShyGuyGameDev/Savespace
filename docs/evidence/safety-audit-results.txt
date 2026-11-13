@@ -1,5 +1,5 @@
 Savespace privacy & safety audit
-Run at: 2026-11-12T05:49:17.743Z
+Run at: 2026-11-13T05:45:51.938Z
 macOS: 27.0.1
 Live restore: false
 
@@ -24,7 +24,7 @@ Live restore: false
       Tests  11 passed (11)
 
 == Fixture-hash integration (capture + restore leaves files unchanged)
-[fixture-hash] 38 files verified unchanged; new files by other apps: []; 20 commands; live=false; statuses=["opened","opened","opened","opened","opened","opened","opened","opened","opened","opened","skipped","skipped","skipped","skipped","skipped"]
+[fixture-hash] 38 files verified unchanged; new files by other apps: []; 21 commands; live=false; statuses=["opened","opened","opened","opened","opened","opened","opened","opened","opened","opened","skipped","skipped","skipped","skipped","skipped"]
  Test Files  1 passed (1)
       Tests  1 passed (1)
 
