@@ -18,6 +18,7 @@ export function matchProject(projects: Project[], observed: string[]): ProjectMa
     let score = 0
     for (const o of observed)
       if (p.signals.some((ps) => signalMatches(ps, o))) score += signalWeight(o)
+    if (score > 0 && score === best.score) best = { ...best, projectId: null }
     if (score > best.score)
       best = { projectId: p.id, score, confidence: Math.min(1, score / total) }
   }

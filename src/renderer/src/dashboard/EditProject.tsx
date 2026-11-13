@@ -185,7 +185,7 @@ export function EditProjectDialog({
                       </label>
                       <p className="mt-0.5 text-[12px] leading-[1.45] text-muted-foreground">
                         {onlyApps
-                          ? 'Checkpoints for this project save only the apps above. In an app with pinned items, only those items are saved.'
+                          ? 'Checkpoints for this project save only the apps above. Pinned items and relevant work in those apps can reopen together.'
                           : 'The apps and pinned items above are always saved, along with anything else you were using for this project.'}
                       </p>
                     </div>

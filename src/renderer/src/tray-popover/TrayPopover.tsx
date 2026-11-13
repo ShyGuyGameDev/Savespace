@@ -7,11 +7,11 @@ import { useCheckpointNow } from '@/lib/checkpoint'
 import { api, useIpc } from '@/lib/bridge'
 import { formatHotkey } from '@/lib/hotkeys'
 import { cn, relativeTime } from '@/lib/utils'
+import { CurrentProject } from '@/components/CurrentProject'
 import { useTracking } from '@/components/TrackingToggle'
 
 /** Menu-bar popover: current context, Checkpoint now, recent projects with Resume. */
 export function TrayPopover() {
-  const ctx = useIpc('app:currentContext', undefined, { refetchInterval: 10_000, staleTime: 0 })
   const projects = useIpc('projects:list', undefined, { staleTime: 0 })
   const suggestions = useIpc('suggestions:list')
   const settings = useIpc('settings:get')
@@ -38,15 +38,9 @@ export function TrayPopover() {
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {APP_NAME}
         </p>
-        <p className="text-[14px] font-medium" aria-live="polite">
-          {!tracking.on
-            ? 'Nothing is being tracked'
-            : ctx.data?.projectName
-              ? `You’re working on ${ctx.data.projectName}`
-              : 'Not sure which project this is yet'}
-        </p>
-        {tracking.on && ctx.data?.frontApp && (
-          <p className="text-[12px] text-muted-foreground">In {ctx.data.frontApp}</p>
+        <CurrentProject />
+        {!tracking.on && (
+          <p className="mt-1 text-xs text-muted-foreground">Nothing is being tracked</p>
         )}
       </header>
 

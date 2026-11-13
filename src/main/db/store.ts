@@ -101,7 +101,7 @@ export class Store {
       id: r.id,
       name: r.name,
       color: r.color,
-      signals: r.signals,
+      signals: [...new Set([...r.signals, ...signalsFromApps(r.apps ?? [])])],
       apps: r.apps ?? [],
       onlyApps: r.onlyApps ?? true,
       createdAt: r.createdAt,
@@ -232,6 +232,7 @@ export class Store {
     trigger: CheckpointTrigger
     summary: string
     summarySource: SummarySource
+    handoff?: string
     resources: ResourceRef[]
     createdAt?: number
   }): Checkpoint {
@@ -247,6 +248,7 @@ export class Store {
           trigger: input.trigger,
           summary: input.summary,
           summarySource: input.summarySource,
+          handoff: input.handoff?.trim() || null,
         })
         .run()
       valid.forEach((r, position) => {
@@ -256,7 +258,9 @@ export class Store {
       })
       if (input.projectId) {
         tx.update(t.projects)
-          .set({ lastCheckpointAt: createdAt })
+          .set({
+            lastCheckpointAt: sql`max(coalesce(${t.projects.lastCheckpointAt}, 0), ${createdAt})`,
+          })
           .where(eq(t.projects.id, input.projectId))
           .run()
       }
@@ -283,6 +287,7 @@ export class Store {
       trigger: r.trigger as CheckpointTrigger,
       summary: r.summary,
       summarySource: r.summarySource as SummarySource,
+      ...(r.handoff ? { handoff: r.handoff } : {}),
     }
   }
 
@@ -345,13 +350,19 @@ export class Store {
   }
 
   /** Edits a checkpoint: its "What you were doing" text and/or removes saved items (by index). */
-  updateCheckpoint(id: string, patch: { summary?: string; removeItems?: number[] }): Checkpoint {
+  updateCheckpoint(
+    id: string,
+    patch: { summary?: string; handoff?: string; removeItems?: number[] },
+  ): Checkpoint {
     const cp = this.getCheckpoint(id)
     if (!cp) throw new Error('Checkpoint not found')
     this.db.transaction((tx) => {
-      if (patch.summary !== undefined)
+      if (patch.summary !== undefined || patch.handoff !== undefined)
         tx.update(t.checkpoints)
-          .set({ summary: patch.summary.trim() })
+          .set({
+            summary: patch.summary?.trim(),
+            handoff: patch.handoff === undefined ? undefined : patch.handoff.trim() || null,
+          })
           .where(eq(t.checkpoints.id, id))
           .run()
       if (patch.removeItems?.length) {

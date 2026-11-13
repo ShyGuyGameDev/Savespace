@@ -160,7 +160,9 @@ export async function createContext(hooks: ContextHooks = {}): Promise<AppContex
   const scheduler = new CaptureScheduler({
     store,
     sample: () => engine.sample(),
-    checkpoint: (trigger, projectId) => checkpoints.create(trigger, projectId),
+    snapshot: () => engine.snapshot({ enrich: false }),
+    checkpoint: (trigger, projectId, snapshot) =>
+      checkpoints.create(trigger, projectId, { snapshot }),
     idleSeconds: () => powerMonitor.getSystemIdleTime(),
     onSuggestionsDue: () => {
       void inference.refresh().then(() => hooks.onSuggestionsDue?.())

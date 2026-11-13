@@ -205,9 +205,9 @@ describe('store', () => {
     expect(e.signals.sort()).toEqual([
       'app:com.google.Chrome',
       'app:com.microsoft.VSCode',
-      'host:acme.atlassian.net',
       'path:/r/atlas-web',
       'repo:/r/atlas',
+      'url:https://acme.atlassian.net/browse/ATL-1',
     ])
     // Removing an app removes what it contributed, but not the learned signal.
     const e2 = ctx.store.updateProject(p.id, { apps: [] })

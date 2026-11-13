@@ -25,6 +25,7 @@ export function ShortcutsSheet({
     ['T', 'Jump to the newest checkpoint'],
     ['R', 'Preview restore'],
     ['↵', 'Resume (restore) selected checkpoint'],
+    ['⌥⌘⇧S', 'Leave a handoff'],
     ['G then S', 'Go to Suggestions'],
     ['G then A', 'Go to Apps'],
     ['G then P', 'Go to Privacy'],

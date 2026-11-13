@@ -1,12 +1,17 @@
 import type { CheckpointTrigger } from '@shared/schemas'
 import type { Store } from '../db/store'
 import { matchProject } from '../inference/match'
-import type { ActivitySample } from './engine'
+import type { ActivitySample, Snapshot } from './engine'
 
 export interface SchedulerDeps {
   store: Store
   sample: () => Promise<ActivitySample | null>
-  checkpoint: (trigger: CheckpointTrigger, projectId?: string | null) => Promise<unknown>
+  snapshot?: () => Promise<Snapshot>
+  checkpoint: (
+    trigger: CheckpointTrigger,
+    projectId?: string | null,
+    snapshot?: Snapshot,
+  ) => Promise<unknown>
   idleSeconds: () => number
   now?: () => Date
   onContext?: (ctx: {
@@ -27,6 +32,9 @@ export interface SchedulerDeps {
  */
 export class CaptureScheduler {
   private timer: NodeJS.Timeout | null = null
+  private lastSnapshot: Snapshot | undefined
+  private selectedProject: string | null = null
+  private contextVersion = 0
   private currentProject: string | null = null
   private candidate: { id: string | null; count: number } = { id: null, count: 0 }
   private idleFired = false
@@ -54,6 +62,38 @@ export class CaptureScheduler {
     this.timer = null
   }
 
+  async selectProject(id: string | null): Promise<void> {
+    const previous = this.currentProject
+    const snapshot = this.lastSnapshot
+    this.contextVersion++
+    this.selectedProject = id
+    this.currentProject = id
+    this.lastSnapshot = previous === id ? snapshot : undefined
+    this.candidate = { id: null, count: 0 }
+    this.lastContext = { projectId: id, frontApp: null, confidence: id ? 1 : 0 }
+    if (previous && previous !== id && snapshot && this.d.store.getSettings().captureEnabled)
+      await this.d
+        .checkpoint('project-switch', previous, snapshot)
+        .catch((error) => console.error('[capture] switch checkpoint failed', error))
+  }
+
+  clearCaptureContext(): void {
+    this.contextVersion++
+    this.lastSnapshot = undefined
+    this.currentProject = this.manualProject
+    this.candidate = { id: null, count: 0 }
+    this.lastContext = { projectId: this.manualProject, frontApp: null, confidence: 0 }
+  }
+
+  snapshotFor(projectId: string | null | undefined): Snapshot | undefined {
+    return projectId && projectId === this.currentProject ? this.lastSnapshot : undefined
+  }
+
+  get manualProject(): string | null {
+    const project = this.selectedProject && this.d.store.getProject(this.selectedProject)
+    return project && !project.archived ? project.id : null
+  }
+
   private now(): Date {
     return this.d.now?.() ?? new Date()
   }
@@ -72,22 +112,19 @@ export class CaptureScheduler {
       if (idle >= settings.idleThresholdMin * 60) {
         if (!this.idleFired) {
           this.idleFired = true
-          await this.d.checkpoint('idle', this.currentProject ?? undefined)
+          await this.d.checkpoint('idle', this.currentProject ?? undefined, this.lastSnapshot)
         }
         return
       }
       this.idleFired = false
 
+      const version = this.contextVersion
       const s = await this.d.sample()
+      if (version !== this.contextVersion || !this.d.store.getSettings().captureEnabled) return
       if (s) {
         const projects = this.d.store.listProjects()
-        const recent = this.d.store.recentActivity(now.getTime() - 5 * 60_000)
-        const m = matchProject(projects, [
-          ...recent.slice(-4).flatMap((e) => e.signals),
-          ...s.signals,
-          ...s.signals,
-        ])
-        const pid = m.confidence >= 0.3 ? m.projectId : null
+        const m = matchProject(projects, s.signals)
+        const pid = this.manualProject ?? (m.confidence >= 0.3 ? m.projectId : null)
         this.d.store.addActivity({
           at: now.getTime(),
           bundleId: s.bundleId,
@@ -99,7 +136,20 @@ export class CaptureScheduler {
         })
         this.lastContext = { projectId: pid, frontApp: s.appName, confidence: m.confidence }
         this.d.onContext?.(this.lastContext)
-        await this.considerSwitch(pid)
+        const switched = this.considerSwitch(pid)
+        if (pid && pid === this.currentProject && this.d.snapshot) {
+          const snapshot = await this.d.snapshot()
+          if (
+            version === this.contextVersion &&
+            this.d.store.getSettings().captureEnabled &&
+            snapshot.system.front.bundleId === s.bundleId
+          )
+            this.lastSnapshot = snapshot
+        }
+        await switched
+        if (version !== this.contextVersion) return
+      } else if (!this.manualProject) {
+        this.candidate = { id: null, count: 0 }
       }
 
       // End of day (once per calendar day, only if there was activity today).
@@ -108,7 +158,7 @@ export class CaptureScheduler {
         this.lastEod = day
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
         if (this.d.store.recentActivity(startOfDay).length > 0)
-          await this.d.checkpoint('end-of-day', this.currentProject ?? undefined)
+          await this.d.checkpoint('end-of-day', this.currentProject ?? undefined, this.lastSnapshot)
       }
 
       if (now.getTime() - this.lastPrune > 6 * 3600_000) {
@@ -128,16 +178,24 @@ export class CaptureScheduler {
       this.candidate = { id: null, count: 0 }
       return
     }
-    if (pid === null) return // unknown context doesn't end a project
+    if (pid === null) {
+      this.candidate = { id: null, count: 0 }
+      return
+    }
     this.candidate =
       this.candidate.id === pid
         ? { id: pid, count: this.candidate.count + 1 }
         : { id: pid, count: 1 }
-    if (this.candidate.count >= 2) {
+    if (!this.currentProject || this.candidate.count >= 2) {
       const previous = this.currentProject
       this.currentProject = pid
       this.candidate = { id: null, count: 0 }
-      if (previous) await this.d.checkpoint('project-switch', previous)
+      const snapshot = this.lastSnapshot
+      this.lastSnapshot = undefined
+      if (previous && (snapshot || !this.d.snapshot))
+        await this.d
+          .checkpoint('project-switch', previous, snapshot)
+          .catch((error) => console.error('[capture] switch checkpoint failed', error))
     }
   }
 
@@ -145,7 +203,7 @@ export class CaptureScheduler {
   async onPowerEvent(trigger: 'sleep' | 'lock' | 'quit'): Promise<void> {
     const s = this.d.store.getSettings()
     if (!s.captureEnabled || !s.onboardingComplete) return
-    await this.d.checkpoint(trigger, this.currentProject ?? undefined)
+    await this.d.checkpoint(trigger, this.currentProject ?? undefined, this.lastSnapshot)
   }
 
   get project(): string | null {

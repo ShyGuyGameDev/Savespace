@@ -50,6 +50,8 @@ export const CHANNELS = [
   'app:openDashboard',
   'app:hideWindow',
   'app:currentContext',
+  'app:selectProject',
+  'checkpoints:gitChanges',
 ] as const
 
 export const EVENTS = [

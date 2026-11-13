@@ -17,7 +17,7 @@ export const projects = sqliteTable('projects', {
     .$type<import('@shared/schemas').ProjectApp[]>()
     .notNull()
     .default(sql`'[]'`),
-  /** "Only restore these apps": checkpoints for this project keep only its chosen apps (and their pinned items). */
+  /** "Only restore these apps": checkpoints for this project keep only its chosen apps. */
   onlyApps: integer('only_apps', { mode: 'boolean' }).notNull().default(true),
   archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at').notNull().default(now),
@@ -32,6 +32,7 @@ export const checkpoints = sqliteTable(
     projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
     createdAt: integer('created_at').notNull().default(now),
     trigger: text('trigger').notNull(),
+    handoff: text('handoff'),
     summary: text('summary').notNull().default(''),
     summarySource: text('summary_source').notNull().default('template'),
   },

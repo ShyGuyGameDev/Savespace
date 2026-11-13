@@ -142,7 +142,7 @@ describe('in-use + relevance selection', () => {
     expect([...parseNumbers('9, 2', 3)!]).toEqual([2])
   })
 
-  it('Only restore these apps (on): keeps only those apps, and in an app with pinned items only those', async () => {
+  it('Only restore these apps (on): keeps pinned and relevant items from chosen apps', async () => {
     const withApps: Project = {
       ...project,
       signals: [],
@@ -158,7 +158,7 @@ describe('in-use + relevance selection', () => {
     const r = await selectRelevant({ refs, project: withApps, events, repoRootOf: root })
     const kept = urls(r.kept)
     expect(kept).toContain('ATL-1 Rate limits') // pinned (even though it wasn't used)
-    expect(kept).not.toContain('Token bucket in Node.js') // Chrome has pinned items: only those
+    expect(kept).toContain('Token bucket in Node.js')
     expect(kept).toContain('app:Slack') // chosen app
     expect(kept).not.toContain('app:Code') // VS Code isn't one of the project's apps
     expect(r.kept.some((x) => x.kind === 'file')).toBe(false)

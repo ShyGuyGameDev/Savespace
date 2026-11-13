@@ -12,6 +12,7 @@ import {
   PermissionsStatusSchema,
   ProjectSchema,
   RestorePlanSchema,
+  ResourceRefSchema,
   RestoreReportSchema,
   SuggestionSchema,
 } from './schemas'
@@ -108,13 +109,19 @@ export const IpcContract = {
   },
   'checkpoints:get': { input: z.object({ id }), output: CheckpointSchema.nullable() },
   'checkpoints:create': {
-    input: z.object({ projectId: id.nullable().optional() }).optional(),
+    input: z
+      .object({
+        projectId: id.nullable().optional(),
+        handoff: z.string().trim().min(1).max(1000).optional(),
+      })
+      .optional(),
     output: CheckpointSchema,
   },
   'checkpoints:update': {
     input: z.object({
       id,
       summary: z.string().max(2000).optional(),
+      handoff: z.string().max(1000).optional(),
       removeItems: z.array(z.number().int().nonnegative()).max(1000).optional(),
     }),
     output: CheckpointSchema,
@@ -229,6 +236,13 @@ export const IpcContract = {
     output: ok,
   },
   'app:hideWindow': { input: none, output: ok },
+  'app:selectProject': { input: z.object({ projectId: id.nullable() }), output: ok },
+  'checkpoints:gitChanges': {
+    input: z.object({ id }),
+    output: z.array(
+      z.object({ repoPath: z.string(), before: ResourceRefSchema, now: ResourceRefSchema }),
+    ),
+  },
   'app:currentContext': {
     input: none,
     output: z.object({
@@ -236,6 +250,7 @@ export const IpcContract = {
       projectName: z.string().nullable(),
       frontApp: z.string().nullable(),
       confidence: z.number(),
+      manual: z.boolean(),
     }),
   },
 } as const

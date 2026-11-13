@@ -134,8 +134,7 @@ export async function selectRelevant(o: {
   const dropped: RelevanceResult['dropped'] = []
   const candidates: { ref: ResourceRef; use: number }[] = []
 
-  // A project made of chosen apps: their pinned items are always kept. With "Only restore these
-  // apps" on, nothing else belongs (other apps, and unpinned items in apps that have pinned ones).
+  // Pinned items are always kept. The app restriction limits which other items qualify.
   const projectApps = o.project?.apps?.length
     ? new Map(o.project.apps.map((a) => [a.bundleId, a]))
     : null
@@ -148,7 +147,7 @@ export async function selectRelevant(o: {
         kept.add(r)
         continue
       }
-      if (onlyApps && (!pa || pa.items.length > 0)) {
+      if (onlyApps && !pa) {
         dropped.push({ ref: r, why: 'unrelated' })
         continue
       }
@@ -179,7 +178,9 @@ export async function selectRelevant(o: {
     const anchors = o.project
       ? []
       : candidates.filter((c, i) => i === 0 || c.ref.focused).slice(0, 2)
-    const toJudge = candidates.filter((c) => !anchors.includes(c)).slice(0, 40)
+    const remaining = candidates.filter((c) => !anchors.includes(c))
+    const toJudge = remaining.slice(0, 40)
+    for (const c of remaining.slice(40)) kept.add(c.ref)
     for (const a of anchors) kept.add(a.ref)
     if (toJudge.length) {
       const work = o.project

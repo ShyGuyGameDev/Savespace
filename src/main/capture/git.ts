@@ -46,6 +46,7 @@ export class GitInspector {
     try {
       const branch = await q('rev-parse', '--abbrev-ref', 'HEAD')
       if (branch === null) return null
+      const head = await q('rev-parse', 'HEAD')
       const status = (await q('status', '--porcelain=v1', '--untracked-files=normal')) ?? ''
       const remote = await q('remote', 'get-url', 'origin')
       const counts = await q('rev-list', '--left-right', '--count', 'HEAD...@{upstream}')
@@ -58,6 +59,7 @@ export class GitInspector {
         title: `${repoPath.split('/').pop()} @ ${branch}`,
         repoPath,
         branch,
+        head: head && /^[a-f0-9]{40,64}$/.test(head) ? head : undefined,
         dirtyFiles: status ? status.split('\n').filter(Boolean).length : 0,
         ahead: Number.isFinite(ahead) ? ahead : undefined,
         behind: Number.isFinite(behind) ? behind : undefined,

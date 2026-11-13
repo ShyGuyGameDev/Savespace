@@ -14,7 +14,7 @@ import type { AppWindowInfo, RestoreContext } from '../adapters/types'
 import { errorReason, result } from '../adapters/util'
 import type { SafeExec } from '../safe-exec'
 import { refKey } from '../capture/engine'
-import { matchesPinned, refsFromApps } from '../inference/project-apps'
+import { refsFromApps } from '../inference/project-apps'
 
 export interface RestoreDeps {
   exec: SafeExec
@@ -81,17 +81,14 @@ export class RestoreEngine {
               : 'workspace'
         }).filter((r) => !have.has(refKey(r)))
       : []
-    // "Only restore these apps": other apps are skipped, and so are unpinned items in apps
-    // that have pinned ones.
+    // Restrict restore to the chosen apps when requested.
     const onlyApps =
       project?.apps?.length && project.onlyApps !== false
         ? new Map(project.apps.map((a) => [a.bundleId, a]))
         : null
     const belongs = (ref: Checkpoint['resources'][number]): boolean => {
       const pa = onlyApps?.get(ref.app)
-      if (!pa) return false
-      if (!pa.items.length || ref.kind === 'app' || ref.kind === 'windowFrame') return true
-      return matchesPinned(ref, pa.items)
+      return !!pa
     }
     const items: RestorePlanItem[] = orderRefs([...cp.resources, ...pinned]).map((ref) => {
       const a = this.d.registry.forRef(ref)

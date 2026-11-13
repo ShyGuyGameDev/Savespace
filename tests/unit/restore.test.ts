@@ -257,7 +257,7 @@ describe('registry routing', () => {
     expect(opened).toEqual(['app:com.flaky', 'https://already.test/', 'https://pinned.test/x'])
   })
 
-  it('Only restore these apps: skips other apps and unpinned items; off restores everything', () => {
+  it('Only restore these apps: skips other apps but keeps captured items from chosen apps', () => {
     const project = {
       id: 'p',
       name: 'Atlas',
@@ -299,7 +299,7 @@ describe('registry routing', () => {
         .items.map((i) => [i.ref.kind === 'url' ? i.ref.url : i.ref.app, i.action, i.reason ?? ''])
     const on = actions(make(project))
     expect(on).toContainEqual(['https://pinned.test/', 'open', ''])
-    expect(on.find((x) => x[0] === 'https://other.test/')?.[1]).toBe('skip')
+    expect(on.find((x) => x[0] === 'https://other.test/')?.[1]).toBe('open')
     expect(on.find((x) => x[0] === 'com.spotify')?.[2]).toMatch(/Not one of Atlas’s apps/)
     const off = actions(make({ ...project, onlyApps: false }))
     expect(off.every((x) => x[1] !== 'skip' || !/Not one of/.test(String(x[2])))).toBe(true)

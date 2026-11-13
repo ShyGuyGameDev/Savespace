@@ -78,6 +78,7 @@ export function signalsForRef(
       try {
         const u = new URL(r.url)
         if (u.protocol.startsWith('http')) {
+          out.push(`url:${u.href.replace(/#.*$/, '').replace(/\/$/, '')}`)
           const host = u.hostname.replace(/^www\./, '')
           if (!GENERIC_HOSTS.has(u.hostname) && !GENERIC_HOSTS.has(host)) out.push(`host:${host}`)
           // Repo-ish paths on code hosts identify a project precisely.
@@ -109,6 +110,7 @@ export function signalMatches(projectSignal: string, observed: string): boolean 
   if ((pk === 'repo' || pk === 'path') && (ok === 'repo' || ok === 'path')) {
     return ov === pv || ov.startsWith(pv.endsWith('/') ? pv : pv + '/')
   }
+  if (pk === 'url' && ok === 'url') return ov.startsWith(pv + '/') || ov.startsWith(pv + '?')
   if (pk === 'host' && ok === 'host') return ov === pv || ov.endsWith('.' + pv)
   return false
 }
@@ -121,15 +123,17 @@ export function splitSignal(s: string): [string, string] {
 /** Weight of a signal kind when scoring project matches. */
 export function signalWeight(s: string): number {
   const k = splitSignal(s)[0]
-  return k === 'repo'
-    ? 5
-    : k === 'path'
-      ? 3
-      : k === 'host'
-        ? 2
-        : k === 'cal'
+  return k === 'url'
+    ? 8
+    : k === 'repo'
+      ? 5
+      : k === 'path'
+        ? 3
+        : k === 'host'
           ? 2
-          : k === 'app'
-            ? 1
-            : 1
+          : k === 'cal'
+            ? 2
+            : k === 'app'
+              ? 1
+              : 1
 }

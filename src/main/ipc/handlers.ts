@@ -23,6 +23,12 @@ export function createHandlers(
     'settings:set': (patch) => {
       const before = store.getSettings().captureEnabled
       const s = store.setSettings(patch)
+      if (
+        patch.captureEnabled === false ||
+        patch.appsCaptureOff ||
+        patch.captureSafariTabs === false
+      )
+        ctx.scheduler.clearCaptureContext()
       if (patch.captureEnabled !== undefined && patch.captureEnabled !== before)
         store.audit(
           'settings',
@@ -63,7 +69,18 @@ export function createHandlers(
     'checkpoints:list': ({ projectId, limit }) => store.listCheckpoints({ projectId, limit }),
     'checkpoints:get': ({ id }) => store.getCheckpoint(id),
     'checkpoints:create': async (input) => {
-      const cp = await ctx.checkpoints.create('manual', input?.projectId ?? undefined)
+      const projectId =
+        input?.projectId === undefined
+          ? (ctx.scheduler.manualProject ??
+            (store.getSettings().captureEnabled ? ctx.scheduler.lastContext.projectId : null) ??
+            undefined)
+          : input.projectId
+      if (input?.projectId && !store.getProject(input.projectId))
+        throw new Error('Project not found')
+      const cp = await ctx.checkpoints.create('manual', projectId, {
+        handoff: input?.handoff,
+        snapshot: input?.handoff ? ctx.scheduler.snapshotFor(projectId) : undefined,
+      })
       if (!cp) throw new Error('Nothing to save right now')
       changed('checkpoints')
       return cp
@@ -116,6 +133,10 @@ export function createHandlers(
     'restore:run': ({ checkpointId, skip }) => {
       const cp = store.getCheckpoint(checkpointId)
       if (!cp) throw new Error('Checkpoint not found')
+      if (cp.projectId && store.getProject(cp.projectId)?.archived === false) {
+        void ctx.scheduler.selectProject(cp.projectId).catch(console.error)
+        changed('projects')
+      }
       return { runId: ctx.restore.start(cp, skip ?? []) }
     },
     'restore:cancel': ({ runId }) => {
@@ -177,13 +198,19 @@ export function createHandlers(
     },
     'privacy:deleteAll': () => {
       store.deleteAll()
+      void ctx.scheduler.selectProject(null)
+      ctx.scheduler.clearCaptureContext()
       changed('all')
       return ok
     },
     'privacy:stats': () => ({ ...store.stats(), dataDir: ctx.dataDir, encrypted: true }),
 
     'exclusions:list': () => store.listExclusions(),
-    'exclusions:add': ({ type, value }) => store.addExclusion(type, value),
+    'exclusions:add': ({ type, value }) => {
+      const rule = store.addExclusion(type, value)
+      ctx.scheduler.clearCaptureContext()
+      return rule
+    },
     'exclusions:remove': ({ id }) => {
       store.removeExclusion(id)
       return ok
@@ -257,14 +284,57 @@ export function createHandlers(
       BrowserWindow.fromWebContents(e.sender)?.hide()
       return ok
     },
+    'app:selectProject': async ({ projectId }) => {
+      if (projectId && store.getProject(projectId)?.archived !== false)
+        throw new Error('Choose an active project')
+      await ctx.scheduler.selectProject(projectId)
+      changed('projects')
+      return ok
+    },
+    'checkpoints:gitChanges': async ({ id }) => {
+      if (store.getSettings().appsCaptureOff.includes('git')) return []
+      const refs = store.getCheckpoint(id)?.resources ?? []
+      const changes = await Promise.all(
+        refs.flatMap((before) =>
+          before.kind === 'gitState'
+            ? [
+                ctx.engine.git
+                  .state(before.repoPath)
+                  .then((now) =>
+                    now &&
+                    (before.branch !== now.branch ||
+                      (before.head && now.head && before.head !== now.head) ||
+                      before.dirtyFiles !== now.dirtyFiles ||
+                      before.ahead !== now.ahead ||
+                      before.behind !== now.behind)
+                      ? { repoPath: before.repoPath, before, now }
+                      : null,
+                  ),
+              ]
+            : [],
+        ),
+      )
+      return changes.filter((change) => change !== null)
+    },
     'app:currentContext': () => {
       // While tracking is paused nothing is being watched, so there's no current context to show.
       if (!store.getSettings().captureEnabled)
-        return { projectId: null, projectName: null, frontApp: null, confidence: 0 }
+        return {
+          projectId: ctx.scheduler.manualProject,
+          projectName: ctx.scheduler.manualProject
+            ? (store.getProject(ctx.scheduler.manualProject)?.name ?? null)
+            : null,
+          frontApp: null,
+          confidence: 0,
+          manual: !!ctx.scheduler.manualProject,
+        }
       const c = ctx.scheduler.lastContext
+      const project = c.projectId ? store.getProject(c.projectId) : null
       return {
         ...c,
-        projectName: c.projectId ? (store.getProject(c.projectId)?.name ?? null) : null,
+        projectId: project && !project.archived ? project.id : null,
+        manual: !!ctx.scheduler.manualProject,
+        projectName: project && !project.archived ? project.name : null,
       }
     },
   }

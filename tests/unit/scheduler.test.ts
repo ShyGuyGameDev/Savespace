@@ -136,3 +136,42 @@ describe('capture scheduler', () => {
     expect(samples).toBe(1)
   })
 })
+
+it('saves the last Alpha snapshot when switching to Beta in the same app', async () => {
+  const { a, b } = setup()
+  let project = a
+  let at = 0
+  const saved: { projectId?: string | null; title?: string }[] = []
+  const scheduler = new CaptureScheduler({
+    store: ctx.store,
+    idleSeconds: () => 0,
+    sample: async () => ({
+      at: ++at,
+      bundleId: 'browser',
+      appName: 'Browser',
+      windowTitle: project.name,
+      signals: project.signals,
+      refs: [],
+    }),
+    snapshot: async () => ({
+      at,
+      refs: [{ kind: 'url', app: 'browser', url: 'https://example.test/', title: project.name }],
+      system: {
+        front: { bundleId: 'browser', name: 'Browser' },
+        apps: [],
+        windowsReadable: true,
+        processesReadable: true,
+      },
+    }),
+    checkpoint: async (trigger, projectId, snapshot) => {
+      if (trigger === 'project-switch') saved.push({ projectId, title: snapshot?.refs[0]?.title })
+    },
+  })
+  await scheduler.tick()
+  await scheduler.tick()
+  project = b
+  await scheduler.tick()
+  await scheduler.tick()
+  expect(saved).toEqual([{ projectId: a.id, title: 'Alpha' }])
+  expect(scheduler.project).toBe(b.id)
+})

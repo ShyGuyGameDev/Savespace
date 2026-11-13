@@ -91,6 +91,10 @@ export const ResourceRefSchema = z.discriminatedUnion('kind', [
     ...base,
     repoPath: absPath,
     branch: z.string().max(300),
+    head: z
+      .string()
+      .regex(/^[a-f0-9]{40,64}$/)
+      .optional(),
     dirtyFiles: z.number().int().nonnegative(),
     ahead: z.number().int().nonnegative().optional(),
     behind: z.number().int().nonnegative().optional(),
@@ -232,6 +236,7 @@ export const CheckpointSchema = z.object({
   createdAt: z.number(),
   trigger: CheckpointTriggerSchema,
   summary: z.string(),
+  handoff: z.string().nullable().optional(),
   summarySource: z.enum(['apple', 'ollama', 'template']),
   resources: z.array(ResourceRefSchema),
 })

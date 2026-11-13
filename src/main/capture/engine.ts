@@ -161,14 +161,14 @@ export class CaptureEngine {
   }
 
   /** Full capture used when saving a checkpoint. */
-  async snapshot(): Promise<Snapshot> {
+  async snapshot({ enrich = true } = {}): Promise<Snapshot> {
     const { ctx, system, rules } = await this.context()
     const raw = [...this.coreRefs(ctx.apps), ...(await this.adapterRefs(ctx))]
     const gitOff = this.d.getSettings().appsCaptureOff.includes('git')
     const withGit = gitOff ? raw : [...raw, ...(await this.gitRefs(raw))]
     const off = this.captureOffBundles()
     let refs = dedupe(filterRefs(validOnly(withGit), rules)).filter((r) => !off.has(r.app))
-    if (this.d.enrich) refs = filterRefs(validOnly(await this.d.enrich(refs)), rules)
+    if (enrich && this.d.enrich) refs = filterRefs(validOnly(await this.d.enrich(refs)), rules)
     return { at: Date.now(), refs, system }
   }
 
@@ -189,7 +189,8 @@ export class CaptureEngine {
     if (
       !front?.bundleId ||
       isExcludedApp(front.bundleId, rules) ||
-      SELF_BUNDLE_IDS.has(front.bundleId)
+      SELF_BUNDLE_IDS.has(front.bundleId) ||
+      this.captureOffBundles().has(front.bundleId)
     )
       return null
     const title = front.windows[0]?.title ?? null
@@ -197,7 +198,7 @@ export class CaptureEngine {
       validOnly([...this.coreRefs([front]), ...(await this.adapterRefs(ctx, front.bundleId))]),
       rules,
     )
-    const focused = refs.filter((r) => r.focused && r.kind !== 'windowFrame')
+    const focused = refs.filter((r) => r.focused && r.kind !== 'windowFrame' && r.kind !== 'app')
     const sigRefs = focused.length
       ? focused
       : refs.filter((r) => r.kind !== 'windowFrame' && r.kind !== 'app').slice(0, 5)

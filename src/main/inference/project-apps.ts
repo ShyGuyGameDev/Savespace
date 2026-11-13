@@ -8,7 +8,7 @@ export function signalsFromApps(apps: ProjectApp[]): string[] {
     for (const it of a.items) {
       if (it.kind === 'url') {
         try {
-          out.push(`host:${new URL(it.url).hostname.replace(/^www\./, '')}`)
+          out.push(`url:${normUrl(new URL(it.url).href)}`)
         } catch {
           /* ignore */
         }

@@ -147,14 +147,20 @@ export function registerHotkeys(): void {
   const s = ctx.store.getSettings()
   const okPalette = globalShortcut.register(s.hotkeyPalette, () => togglePalette())
   const okCheckpoint = globalShortcut.register(s.hotkeyCheckpoint, () => void checkpointNow())
-  if (!okPalette || !okCheckpoint)
+  const okHandoff = globalShortcut.register('Alt+Command+Shift+S', () => showDashboard('/handoff'))
+  if (!okPalette || !okCheckpoint || !okHandoff)
     console.warn('[hotkeys] could not register one or more shortcuts (in use by another app?)')
 }
 
 async function checkpointNow(): Promise<void> {
   if (!ctx) return
   try {
-    const cp = await ctx.checkpoints.create('manual')
+    const cp = await ctx.checkpoints.create(
+      'manual',
+      (ctx.store.getSettings().captureEnabled
+        ? ctx.scheduler.lastContext.projectId
+        : ctx.scheduler.manualProject) ?? undefined,
+    )
     const name = cp?.projectId ? ctx.store.getProject(cp.projectId)?.name : null
     new Notification({
       title: 'Checkpoint saved',

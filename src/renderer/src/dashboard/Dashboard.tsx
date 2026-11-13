@@ -8,6 +8,7 @@ import { Privacy } from './Privacy'
 import { SettingsView } from './SettingsView'
 import { ShortcutsSheet, useShortcutsSheet } from './ShortcutsSheet'
 import { checkpointNow } from '@/lib/checkpoint'
+import { CurrentProject } from '@/components/CurrentProject'
 import { TrackingToggle } from '@/components/TrackingToggle'
 
 export type Navigate = (r: string) => void
@@ -76,7 +77,10 @@ export function Dashboard({ route, navigate }: { route: string; navigate: Naviga
     <div className="flex h-full">
       <Sidebar route={route} navigate={navigate} />
       <main className="relative flex min-w-0 flex-1 flex-col bg-background">
-        {view}
+        <div className="flex h-12 shrink-0 items-center border-b border-border pl-4 pr-44">
+          <CurrentProject requestHandoff={route === '/handoff' ? () => navigate('/') : undefined} />
+        </div>
+        <div className="min-h-0 flex-1">{view}</div>
         {/* Always in the top-right corner, on every page. */}
         <TrackingToggle className="absolute right-4 top-0 z-30 h-12" />
       </main>

@@ -55,7 +55,7 @@ export function useLiveData() {
           projects: ['projects:list', 'app:currentContext'],
           checkpoints: ['checkpoints:list', 'checkpoints:get', 'projects:list', 'privacy:stats'],
           suggestions: ['suggestions:list'],
-          settings: ['settings:get'],
+          settings: ['settings:get', 'app:currentContext', 'checkpoints:gitChanges'],
         }
         for (const c of map[scope] ?? []) void qc.invalidateQueries({ queryKey: [c] })
       }),

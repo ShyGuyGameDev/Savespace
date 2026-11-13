@@ -157,3 +157,27 @@ test.describe('dashboard', () => {
     await app.close()
   })
 })
+
+test('selects the current project and shows a saved handoff on return', async () => {
+  const { app } = await launchApp({ SAVESPACE_E2E_SEED: '1', SAVESPACE_DRY_RUN: '1' })
+  try {
+    const page = await windowByRoute(app, '/')
+    const picker = page.getByLabel('Current project', { exact: true })
+    await picker.selectOption({ label: 'Atlas API · Selected' })
+    await expect(picker.locator('option:checked')).toHaveText('Atlas API · Selected')
+    await page.getByRole('button', { name: 'Leave handoff' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Leave a handoff' })
+    await expect(
+      dialog.getByRole('combobox', { name: 'Project', exact: true }).locator('option:checked'),
+    ).toHaveText('Atlas API')
+    const note = 'Ruled out caching. Compare the retry headers next.'
+    await dialog.getByLabel('Handoff note').fill(note)
+    await dialog.getByRole('button', { name: 'Save handoff' }).click()
+    await expect(dialog).toBeHidden()
+    await page.getByRole('button', { name: /Atlas API/ }).click()
+    await expect(page.getByRole('heading', { name: 'Your handoff' })).toBeVisible()
+    await expect(page.getByText(note, { exact: true })).toBeVisible()
+  } finally {
+    await app.close()
+  }
+})

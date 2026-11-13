@@ -106,6 +106,7 @@ export const BINARIES: Record<string, BinarySpec> = {
       const allowed = [
         'rev-parse --show-toplevel',
         'rev-parse --abbrev-ref HEAD',
+        'rev-parse HEAD',
         'status --porcelain=v1 --untracked-files=normal',
         'remote get-url origin',
         'rev-list --left-right --count HEAD...@{upstream}',

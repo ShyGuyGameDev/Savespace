@@ -1,5 +1,5 @@
 import type { Checkpoint, CheckpointTrigger } from '@shared/schemas'
-import type { CaptureEngine } from '../capture/engine'
+import type { CaptureEngine, Snapshot } from '../capture/engine'
 import { refKey } from '../capture/engine'
 import { signalsForRef } from '../capture/signals'
 import type { Store } from '../db/store'
@@ -22,7 +22,8 @@ export interface CheckpointServiceDeps {
 export class CheckpointService {
   private lastFingerprint = new Map<string, { fp: string; at: number }>()
   /** The checkpoint currently being made; repeat requests share it instead of creating duplicates. */
-  private inFlight: Promise<Checkpoint | null> | null = null
+  private pending: Promise<unknown> = Promise.resolve()
+  private manualSaves = new Map<string, Promise<Checkpoint | null>>()
 
   constructor(private readonly d: CheckpointServiceDeps) {}
 
@@ -30,22 +31,34 @@ export class CheckpointService {
    * @param projectId  explicit project, or undefined to infer from what's on screen.
    * Automatic triggers are skipped when nothing changed since the last checkpoint of that project.
    */
-  create(trigger: CheckpointTrigger, projectId?: string | null): Promise<Checkpoint | null> {
-    // One at a time: a second click / hotkey press while saving gets the same checkpoint.
-    if (this.inFlight) return this.inFlight
-    const p = this.doCreate(trigger, projectId).finally(() => {
-      if (this.inFlight === p) this.inFlight = null
-    })
-    this.inFlight = p
-    return p
+  create(
+    trigger: CheckpointTrigger,
+    projectId?: string | null,
+    options: { snapshot?: Snapshot; handoff?: string } = {},
+  ): Promise<Checkpoint | null> {
+    const key =
+      trigger === 'manual' && !options.handoff && !options.snapshot
+        ? JSON.stringify([projectId === undefined, projectId])
+        : null
+    const existing = key && this.manualSaves.get(key)
+    if (existing) return existing
+    const save = this.pending
+      .then(() => this.doCreate(trigger, projectId, options))
+      .finally(() => {
+        if (key) this.manualSaves.delete(key)
+      })
+    if (key) this.manualSaves.set(key, save)
+    this.pending = save.catch(() => undefined)
+    return save
   }
 
   private async doCreate(
     trigger: CheckpointTrigger,
-    projectId?: string | null,
+    projectId: string | null | undefined,
+    options: { snapshot?: Snapshot; handoff?: string },
   ): Promise<Checkpoint | null> {
     const { store, engine } = this.d
-    const snap = await engine.snapshot()
+    const snap = options.snapshot ?? (await engine.snapshot())
     const projects = store.listProjects()
     let pid = projectId
     let aiFiled: { projectId: string; judgedBy: 'apple' | 'ollama' } | null = null
@@ -78,14 +91,15 @@ export class CheckpointService {
       }
     }
     const project = pid ? store.getProject(pid) : null
+    if (!project) pid = null
     const since = (project?.lastCheckpointAt ?? 0) || Date.now() - 4 * 3600_000
     // Only what was actually in use during this session, and (judged by the local AI) related to the work.
     const events = store
       // "In use" = used in the last 2 hours, or since the previous checkpoint if longer (max 8 h).
-      .recentActivity(
-        Math.max(Math.min(since, Date.now() - 2 * 3600_000), Date.now() - 8 * 3600_000),
+      .recentActivity(Math.max(Math.min(since, snap.at - 2 * 3600_000), snap.at - 8 * 3600_000))
+      .filter(
+        (e) => e.at <= snap.at && (!project || e.projectId === project.id || e.projectId === null),
       )
-      .filter((e) => !project || e.projectId === project.id || e.projectId === null)
     const relevance = await selectRelevant({
       refs: snap.refs,
       project,
@@ -101,7 +115,13 @@ export class CheckpointService {
 
     const fp = refs
       .filter((r) => r.kind !== 'windowFrame')
-      .map(refKey)
+      .map((r) =>
+        r.kind === 'gitState'
+          ? JSON.stringify(r)
+          : r.kind === 'file'
+            ? JSON.stringify([refKey(r), r.line, r.column, r.focused])
+            : JSON.stringify([refKey(r), r.focused]),
+      )
       .sort()
       .join('|')
     const key = pid ?? '∅'
@@ -115,8 +135,8 @@ export class CheckpointService {
       return null
 
     const recentTitles = store
-      .recentActivity(Date.now() - 60 * 60_000)
-      .filter((e) => !project || e.projectId === project.id)
+      .recentActivity(snap.at - 60 * 60_000)
+      .filter((e) => e.at <= snap.at && (!project || e.projectId === project.id))
       .map((e) => e.windowTitle)
       .filter((t): t is string => !!t)
       .slice(-12)
@@ -133,6 +153,7 @@ export class CheckpointService {
       summary: summary.text,
       summarySource: summary.source,
       resources: refs,
+      handoff: options.handoff,
       createdAt: snap.at,
     })
     if (summary.source !== 'template')

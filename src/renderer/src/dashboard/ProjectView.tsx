@@ -287,14 +287,30 @@ function CheckpointDetail({
   const ai = useIpc('ai:status', undefined, { staleTime: 60_000 })
   const visible = cp.resources.filter((r) => r.kind !== 'windowFrame')
   const groups = groupByApp(visible.map((ref) => ({ ref })))
+  const earlier = useIpc(
+    'checkpoints:list',
+    { projectId: cp.projectId, limit: 30 },
+    { enabled: !!cp.projectId && !cp.handoff },
+  )
+  const earlierHandoff = earlier.data?.find(
+    (item) => item.createdAt <= cp.createdAt && item.handoff,
+  )
+  const focused = visible.filter((ref) => ref.focused && ref.kind !== 'app')
   const frames = cp.resources.filter((r) => r.kind === 'windowFrame').length
   const project = projects.find((p) => p.id === cp.projectId)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(cp.summary)
+  const [handoff, setHandoff] = useState(cp.handoff ?? '')
+  const changes = useIpc(
+    'checkpoints:gitChanges',
+    { id: cp.id },
+    { enabled: cp.resources.some((r) => r.kind === 'gitState') },
+  )
   const [removed, setRemoved] = useState<Set<number>>(new Set())
   const [confirmDelete, setConfirmDelete] = useState(false)
   const startEdit = () => {
     setDraft(cp.summary)
+    setHandoff(cp.handoff ?? '')
     setRemoved(new Set())
     setEditing(true)
   }
@@ -302,6 +318,7 @@ function CheckpointDetail({
     await api('checkpoints:update', {
       id: cp.id,
       summary: draft.trim() !== cp.summary ? draft.trim() : undefined,
+      handoff: handoff.trim() !== (cp.handoff ?? '') ? handoff.trim() : undefined,
       removeItems: removed.size ? [...removed] : undefined,
     })
     setEditing(false)
@@ -369,6 +386,67 @@ function CheckpointDetail({
           </div>
         </div>
 
+        {(cp.handoff || earlierHandoff || editing) && (
+          <section className="mb-4 rounded-xl border border-border p-4">
+            <h2 className="mb-1 text-[13px] font-semibold">
+              {cp.handoff || editing ? 'Your handoff' : 'Earlier handoff'}
+            </h2>
+            {editing ? (
+              <textarea
+                aria-label="Your handoff"
+                value={handoff}
+                maxLength={1000}
+                rows={2}
+                onChange={(e) => setHandoff(e.target.value)}
+                className="w-full rounded-md border border-border bg-background p-2 text-sm"
+              />
+            ) : (
+              <p className="selectable whitespace-pre-wrap break-words text-sm">
+                {cp.handoff ?? earlierHandoff?.handoff}
+              </p>
+            )}
+          </section>
+        )}
+        {!!focused.length && (
+          <section className="mb-4 rounded-xl border border-border p-4">
+            <h2 className="mb-1 text-[13px] font-semibold">In focus when saved</h2>
+            <ul className="space-y-1 text-sm">
+              {focused.slice(0, 4).map((ref, index) => (
+                <li key={index} className="flex min-w-0 items-center gap-2">
+                  <ResourceIcon kind={ref.kind} />
+                  <span className="truncate" title={refLabel(ref).secondary}>
+                    {refLabel(ref).primary}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {!!changes.data?.length && (
+          <section className="mb-4 rounded-xl border border-border p-4">
+            <h2 className="mb-1 text-[13px] font-semibold">
+              Local Git changes since this checkpoint
+            </h2>
+            <ul className="space-y-1 text-sm">
+              {changes.data.map(
+                ({ repoPath, before, now }) =>
+                  before.kind === 'gitState' &&
+                  now.kind === 'gitState' && (
+                    <li key={repoPath} title={repoPath}>
+                      {repoPath.split('/').pop()} · {before.branch} → {now.branch} ·{' '}
+                      {before.dirtyFiles ?? 0} → {now.dirtyFiles ?? 0} changed files
+                      {before.head &&
+                        now.head &&
+                        before.head !== now.head &&
+                        ` · Commit ${before.head.slice(0, 7)} → ${now.head.slice(0, 7)}`}
+                      {(before.ahead !== now.ahead || before.behind !== now.behind) &&
+                        ` · Upstream: ${before.ahead ?? '?'} ahead / ${before.behind ?? '?'} behind → ${now.ahead ?? '?'} ahead / ${now.behind ?? '?'} behind`}
+                    </li>
+                  ),
+              )}
+            </ul>
+          </section>
+        )}
         <section
           aria-labelledby="wywd"
           className="mb-6 rounded-xl border border-border bg-muted/40 p-4"
