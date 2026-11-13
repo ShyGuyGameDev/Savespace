@@ -52,6 +52,9 @@ export const CHANNELS = [
   'app:currentContext',
   'app:selectProject',
   'checkpoints:gitChanges',
+  'checkpoints:githubProgress',
+  'checkpoints:githubUpdates',
+  'checkpoints:openEvidence',
 ] as const
 
 export const EVENTS = [

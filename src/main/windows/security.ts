@@ -8,6 +8,8 @@ export const ALLOWED_NETWORK_HOSTS = new Set([
   'accounts.google.com',
   'gmail.googleapis.com',
   'www.googleapis.com',
+  // Public checkpoint evidence, requested explicitly by the user.
+  'api.github.com',
 ])
 
 export { PROD_CSP } from './csp'

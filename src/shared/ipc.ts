@@ -237,6 +237,37 @@ export const IpcContract = {
   },
   'app:hideWindow': { input: none, output: ok },
   'app:selectProject': { input: z.object({ projectId: id.nullable() }), output: ok },
+  'checkpoints:githubProgress': {
+    input: z.object({ id }),
+    output: z.array(
+      z.object({
+        url: z.url(),
+        title: z.string(),
+        state: z.string(),
+        updatedAt: z.string().optional(),
+        commit: z.string().optional(),
+      }),
+    ),
+  },
+  'checkpoints:githubUpdates': {
+    input: z.object({ id }),
+    output: z.object({
+      incomplete: z.boolean(),
+      updates: z.array(
+        z.object({
+          url: z.url(),
+          source: z.string(),
+          at: z.string(),
+          description: z.string(),
+          excerpt: z.string().optional(),
+        }),
+      ),
+    }),
+  },
+  'checkpoints:openEvidence': {
+    input: z.object({ id, url: z.url().max(2048) }),
+    output: ok,
+  },
   'checkpoints:gitChanges': {
     input: z.object({ id }),
     output: z.array(

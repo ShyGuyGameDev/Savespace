@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog } from 'electron'
+import { githubProgress, githubTargets, githubUpdates } from '../connectors/github-progress'
 import { release } from 'node:os'
 import { APP_NAME } from '@shared/constants'
 import type { AppContext } from '../app-context'
@@ -289,6 +290,29 @@ export function createHandlers(
         throw new Error('Choose an active project')
       await ctx.scheduler.selectProject(projectId)
       changed('projects')
+      return ok
+    },
+    'checkpoints:githubProgress': ({ id }) => {
+      const checkpoint = store.getCheckpoint(id)
+      return checkpoint ? githubProgress(checkpoint) : []
+    },
+    'checkpoints:githubUpdates': ({ id }) => {
+      const checkpoint = store.getCheckpoint(id)
+      return checkpoint ? githubUpdates(checkpoint) : { updates: [], incomplete: false }
+    },
+    'checkpoints:openEvidence': async ({ id, url }) => {
+      const checkpoint = store.getCheckpoint(id)
+      const [base, anchor] = url.split('#', 2)
+      if (
+        !checkpoint ||
+        !githubTargets(checkpoint).some((target) => target.url === base) ||
+        (url !== base &&
+          !/^(?:issuecomment|pullrequestreview|event)-[1-9]\d*$/.test(anchor ?? '')) ||
+        (anchor && url !== `${base}#${anchor}`)
+      )
+        throw new Error('This source is not in the checkpoint')
+      const opened = await ctx.exec.run('open', [url])
+      if (opened.code !== 0) throw new Error('Could not open this source')
       return ok
     },
     'checkpoints:gitChanges': async ({ id }) => {

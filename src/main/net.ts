@@ -2,7 +2,7 @@ import { ALLOWED_NETWORK_HOSTS } from './windows/security'
 
 /**
  * The only network entry point in the main process. Refuses every host that isn't local Ollama
- * or (when the user enabled a connector) Google's OAuth/API hosts. No telemetry exists.
+ * or the explicitly allowed connector hosts. No telemetry exists.
  */
 /** Loopback ports of Savespace's own bundled AI engine (set when the engine starts). */
 const loopbackPorts = new Set<number>()

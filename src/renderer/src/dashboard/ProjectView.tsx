@@ -14,6 +14,7 @@ import {
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { useEffect, useMemo, useState } from 'react'
 import type { Checkpoint, Project } from '@shared/schemas'
+import { ProgressRecap } from '@/components/ProgressRecap'
 import { ResourceIcon } from '@/components/ResourceIcon'
 import { RestorePreviewDialog } from '@/components/RestorePreview'
 import { DeleteCheckpointDialog } from '@/components/DeleteCheckpointDialog'
@@ -407,6 +408,7 @@ function CheckpointDetail({
             )}
           </section>
         )}
+        <ProgressRecap checkpoint={cp} />
         {!!focused.length && (
           <section className="mb-4 rounded-xl border border-border p-4">
             <h2 className="mb-1 text-[13px] font-semibold">In focus when saved</h2>
