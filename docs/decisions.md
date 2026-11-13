@@ -1,7 +1,5 @@
 # Decisions log
 
-Decisions made autonomously while building. Newest at the bottom.
-
 1. **Toolchain (verified 2026-11-10 via `npm view`):** Electron 45.3, electron-vite 6.0 (peer: Vite 6–8), Vite 8, React 19.3, TypeScript (see #12), Tailwind 4.3, Zod 4.6, Drizzle ORM 0.45 / drizzle-kit 0.31, better-sqlite3-multiple-ciphers 13.0, Vitest, Playwright 1.65, electron-builder 26.18.
 2. **electron-vite over vite-plugin-electron.** Both are active (electron-vite 6.0.0 published 2026-10-14; vite-plugin-electron 1.2.0 on 2026-10-31). electron-vite gives a first-class three-target config (main/preload/renderer) with sandbox-friendly CJS preload output, which maps 1:1 onto the required `src/main`, `src/preload`, `src/renderer` layout. vite-plugin-electron is a lower-level plugin that would need that wiring by hand.
 3. **Window titles via System Events (Accessibility), never CGWindowList names.** See adapter-research.md. No Screen Recording permission is requested anywhere.
