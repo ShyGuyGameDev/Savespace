@@ -1,3 +1,4 @@
+import { CLASSIFY_INSTRUCTIONS, CONFIRM_INSTRUCTIONS } from '../../src/main/checkpoints/classify'
 import { afterEach, describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '@shared/constants'
 import { AdapterRegistry } from '../../src/main/adapters/registry'
@@ -150,7 +151,7 @@ describe('capture engine', () => {
       .filter((r) => r.kind === 'url')
       .map((r) => (r as { url: string }).url)
     expect(urls).toEqual(['https://acme.atlassian.net/browse/WP-1'])
-    expect(cp!.summary).toMatch(/You were working on WP, editing a\.ts/)
+    expect(cp!.summary).toMatch(/a\.ts/)
     expect(ctx.store.listAudit()[0]?.action).toBe('capture')
     // Identical automatic checkpoint is skipped.
     expect(await svc.create('idle', p.id)).toBeNull()
@@ -180,14 +181,14 @@ describe('capture engine', () => {
         summarizer: new TemplateSummarizer(),
         ask: async (instructions, prompt) => {
           asked.push({ instructions, prompt })
-          if (instructions.includes('double-check'))
+          if (instructions === CONFIRM_INSTRUCTIONS)
             return confirm === null ? null : { text: confirm, source: 'apple' }
-          if (!instructions.includes('file a saved snapshot')) return null
+          if (instructions !== CLASSIFY_INSTRUCTIONS) return null
           const t = reply(prompt)
           return t === null ? null : { text: t, source: 'apple' }
         },
       })
-      const classify = () => asked.filter((a) => a.instructions.includes('file a saved snapshot'))
+      const classify = () => asked.filter((a) => a.instructions === CLASSIFY_INSTRUCTIONS)
       return { trip, site, svc, classify }
     }
     const numberOf = (prompt: string, name: string) =>

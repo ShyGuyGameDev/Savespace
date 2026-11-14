@@ -35,6 +35,7 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI (real)', () => {
       trigger: 'idle',
       at: Date.now(),
       recentTitles: [],
+      handoff: 'goal: Add rate limiting to the public API',
       refs: [
         {
           kind: 'file',
@@ -54,7 +55,8 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI (real)', () => {
     })
     console.log(`[apple-ai] ${Date.now() - t0} ms: ${text}`)
     expect(text).toMatch(/server\.ts/)
-    expect(text).toMatch(/rate-limits/)
+    expect(text).toMatch(/line 42/i)
+    expect(text).toMatch(/rate limit/i)
   }, 60_000)
 })
 
@@ -76,8 +78,8 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI judges relevance (real)
       createdAt: 0,
       updatedAt: 0,
       lastCheckpointAt: null,
-      apps: [],
-      onlyApps: true,
+      apps: [{ bundleId: 'com.tinyspeck.slackmacgap', name: 'Slack', items: [] }],
+      onlyApps: false,
       archived: false,
     }
     const refs = [
@@ -115,7 +117,7 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI judges relevance (real)
         kind: 'url' as const,
         app: 'com.google.Chrome',
         url: 'https://redis.io/docs/latest/develop/data-types/',
-        title: 'Redis data types | Docs',
+        title: 'Redis data types for distributed rate limiting | Docs',
       },
       { kind: 'app' as const, app: 'com.tinyspeck.slackmacgap', title: 'Slack' },
     ]
@@ -123,7 +125,7 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI judges relevance (real)
       at: 0,
       bundleId: r.app,
       appName: r.app,
-      windowTitle: r.kind === 'app' ? 'atlas-api-dev (Channel) - Acme' : null,
+      windowTitle: r.kind === 'app' ? 'Atlas API rate limiting (project channel) - Acme' : null,
       ref: r.kind === 'app' ? null : r,
     }))
     const t0 = Date.now()
@@ -140,7 +142,7 @@ describe.skipIf(!existsSync(HELPER))('Apple on-device AI judges relevance (real)
     )
     expect(kept).toContain('How to implement a token bucket rate limiter in Node.js')
     expect(kept).toContain('Slack')
-    expect(kept).toContain('Redis data types | Docs')
+    expect(kept).toContain('Redis data types for distributed rate limiting | Docs')
     expect(kept).not.toContain('Ergonomic Desk Lamp with USB Charging')
     expect(kept).not.toContain('lofi hip hop radio - beats to relax/study to')
   }, 90_000)
@@ -156,6 +158,7 @@ describe.skipIf(!existsSync(HELPER))(
       if (!(await apple.status(true)).available) return
       const ask = async (i: string, p: string) => {
         const t = await apple.ask(i, p)
+        console.log(`[apple-ai] filing response: ${JSON.stringify(t)}`)
         return t ? { text: t, source: 'apple' as const } : null
       }
       const proj = (id: string, name: string, signals: string[], apps: string[] = []) => ({

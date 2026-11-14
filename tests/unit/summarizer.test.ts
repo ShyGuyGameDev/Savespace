@@ -71,7 +71,7 @@ describe('template summary', () => {
   it('writes 2-3 sentences of state only', () => {
     const t = templateSummary(input)
     expect(t).toMatch(
-      /^You were working on Savespace, editing engine\.ts around line 120 with index\.ts also open\./,
+      /^You were working on Savespace, with engine\.ts in focus around line 120 with index\.ts also open\./,
     )
     expect(t).toMatch(/feature\/restore branch of savespace had 3 uncommitted changes/)
     expect(t.match(/[.!?](\s|$)/g)!.length).toBeLessThanOrEqual(3)
@@ -115,7 +115,7 @@ describe('ollama summarizer', () => {
     expect(sent?.stream).toBe(false)
     expect(sent?.model).toBe('llama3.2:3b')
     expect(sent?.messages[0]?.content).toBe(SYSTEM_PROMPT)
-    expect(sent?.messages[1]?.content).toContain('engine.ts (line 120) (focused)')
+    expect(sent?.messages[1]?.content).toContain('engine.ts (line 120)" (focused)')
   })
 
   it('falls back to the template when Ollama is down, slow, malformed or disabled', async () => {
@@ -181,6 +181,22 @@ describe('ollama summarizer', () => {
     expect(f).toContain('Project: Savespace')
     expect(f).toContain('Status update')
     expect(f).not.toContain('x@y')
+  })
+
+  it('includes user intent and compares only matching saved repositories', () => {
+    const git = input.refs.find((ref) => ref.kind === 'gitState')!
+    const facts = factSheet({
+      ...input,
+      handoff: 'goal: Keep restore preview stable',
+      previousRefs: [
+        { ...git, repoPath: '/other/repo', dirtyFiles: 99 },
+        { ...git, branch: 'main', dirtyFiles: 1 },
+      ],
+    })
+    expect(facts).toContain('goal: Keep restore preview stable')
+    expect(facts).toContain('branch main → feature/restore, changed file count 1 → 3')
+    expect(facts).toContain('linear.app/acme/issue/WP-9')
+    expect(facts).not.toContain('99')
   })
 
   it('cleanSummary drops advice and caps at 3 sentences', () => {

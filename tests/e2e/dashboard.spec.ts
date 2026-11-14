@@ -9,8 +9,10 @@ test.describe('dashboard', () => {
     await page.getByRole('button', { name: /Atlas API/ }).click()
     await expect(page.getByRole('heading', { name: 'Atlas API' })).toBeVisible()
     await page.getByText('Checkpoint evidence and saved items').click()
-    await expect(page.getByText('What you were doing')).toBeVisible()
-    await expect(page.getByText(/editing server\.ts around line 42/).first()).toBeVisible()
+    const brief = page.getByRole('region', { name: 'Resume brief' })
+    await expect(brief.getByText('What you were doing')).toBeVisible()
+    await expect(brief.getByText(/editing server\.ts around line 42/)).toBeVisible()
+    await expect(brief.getByRole('button', { name: 'Open server.ts first' })).toBeVisible()
     await page.screenshot({ path: 'test-results/dashboard-detail.png' })
 
     // Preview restore lists exactly what will open, grouped by app.

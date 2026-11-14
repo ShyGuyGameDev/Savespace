@@ -134,17 +134,27 @@ export class CheckpointService {
     )
       return null
 
-    const recentTitles = store
-      .recentActivity(snap.at - 60 * 60_000)
-      .filter((e) => e.at <= snap.at && (!project || e.projectId === project.id))
+    const previous = project ? store.latestCheckpoint(project.id) : null
+    const recentTitles = events
+      .filter(
+        (e) =>
+          e.at >
+            Math.max(
+              previous && previous.createdAt < snap.at ? previous.createdAt : 0,
+              snap.at - 60 * 60_000,
+            ) && e.projectId === (project?.id ?? null),
+      )
       .map((e) => e.windowTitle)
-      .filter((t): t is string => !!t)
-      .slice(-12)
+      .filter((title): title is string => !!title)
+      .filter((title, index, titles) => title !== titles[index - 1])
+      .slice(-8)
     const summary = await this.d.summarizer.summarize({
       project,
       trigger,
       refs,
       recentTitles,
+      handoff: options.handoff,
+      previousRefs: previous && previous.createdAt < snap.at ? previous.resources : undefined,
       at: snap.at,
     })
     const cp = store.createCheckpoint({

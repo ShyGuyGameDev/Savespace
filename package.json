@@ -62,7 +62,7 @@
     "@vitejs/plugin-react": "^6.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "drizzle-kit": "^0.18.1",
+    "drizzle-kit": "^0.31.11",
     "electron": "^45.3.0",
     "electron-builder": "^25.1.0",
     "electron-vite": "^6.0.0",

@@ -27,7 +27,10 @@ export function templateSummary(input: SummaryInput): string {
   const of = <K extends ResourceRef['kind']>(k: K) =>
     r.filter((x): x is Extract<ResourceRef, { kind: K }> => x.kind === k)
   const files = of('file')
-  const focusedFile = files.find((f) => f.focused) ?? files[0]
+  const focusedFile = files.find((f) => f.focused)
+  const focused = r.find(
+    (ref) => ref.focused && !['app', 'windowFrame', 'gitState'].includes(ref.kind),
+  )
   const git = of('gitState')[0]
   const urls = of('url')
   const drafts = of('draft')
@@ -38,11 +41,21 @@ export function templateSummary(input: SummaryInput): string {
   if (focusedFile) {
     const others = files.filter((f) => f !== focusedFile).map((f) => base(f.path))
     sentences.push(
-      `You were working ${where}, editing ${base(focusedFile.path)}${focusedFile.line ? ` around line ${focusedFile.line}` : ''}${others.length ? ` with ${list(others)} also open` : ''}.`,
+      `You were working ${where}, with ${base(focusedFile.path)} in focus${focusedFile.line ? ` around line ${focusedFile.line}` : ''}${others.length ? ` with ${list(others)} also open` : ''}.`,
     )
+  } else if (focused?.kind === 'url' || focused?.kind === 'doc') {
+    sentences.push(
+      `You had ${focused.title || new URL(focused.url).hostname || 'a document'} in focus.`,
+    )
+  } else if (focused && 'path' in focused) {
+    sentences.push(`You had ${base(focused.path)} in focus.`)
+  } else if (focused?.title) {
+    sentences.push(`You had ${focused.title} in focus.`)
+  } else if (files.length) {
+    sentences.push(`You had ${list(files.map((file) => base(file.path)))} open.`)
   } else if (urls.length) {
     sentences.push(
-      `You were working ${where} in the browser, mainly on ${list(
+      `You were working ${where} with these tabs open: ${list(
         urls.map((u) => u.title || new URL(u.url).hostname),
         2,
       )}.`,

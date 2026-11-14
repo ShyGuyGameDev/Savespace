@@ -185,6 +185,7 @@ export function createHandlers(
           { kind: 'app' as const, app: 'com.apple.finder', title: 'Finder' },
         ],
         recentTitles: [],
+        handoff: latest?.handoff ?? undefined,
         at: Date.now(),
       }
       const r = await ctx.summarizer.summarize(input)

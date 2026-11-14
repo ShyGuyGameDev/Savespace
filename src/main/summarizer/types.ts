@@ -6,6 +6,8 @@ export interface SummaryInput {
   refs: ResourceRef[]
   /** Recent window titles (most recent last), metadata only. */
   recentTitles: string[]
+  handoff?: string
+  previousRefs?: ResourceRef[]
   at: number
 }
 

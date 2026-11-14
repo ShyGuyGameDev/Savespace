@@ -52,7 +52,7 @@ describe('Apple on-device summarizer', () => {
     expect(await apple.summarize(input)).toBe('You were editing server.ts at line 42.')
     const s = calls.find((c) => c[0] === 'summarize')!
     expect(s).toHaveLength(3)
-    expect(s[2]).toContain('server.ts (line 42) (focused)')
+    expect(s[2]).toContain('server.ts (line 42)" (focused)')
   })
 
   it('reports why it is unavailable and returns null so callers fall back', async () => {

@@ -296,9 +296,7 @@ function CheckpointDetail({
     { projectId: cp.projectId, limit: 30 },
     { enabled: !!cp.projectId && !cp.handoff },
   )
-  const earlierHandoff = earlier.data?.find(
-    (item) => item.createdAt <= cp.createdAt && item.handoff,
-  )
+  const earlierHandoff = earlier.data?.find((item) => item.createdAt < cp.createdAt && item.handoff)
   const frames = cp.resources.filter((r) => r.kind === 'windowFrame').length
   const project = projects.find((p) => p.id === cp.projectId)
   const [editing, setEditing] = useState(false)
@@ -398,8 +396,58 @@ function CheckpointDetail({
 
         <ResumeBrief
           checkpoint={cp}
-          projectName={project?.name}
           earlierHandoff={earlierHandoff}
+          recap={
+            <section aria-labelledby="wywd" className="mb-3">
+              <h2
+                id="wywd"
+                className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                What you were doing
+                <Badge tone={cp.summarySource === 'template' ? 'neutral' : 'accent'}>
+                  {cp.summarySource === 'apple' ? (
+                    <>
+                      <Cpu className="size-3" aria-hidden /> Apple on-device AI
+                    </>
+                  ) : cp.summarySource === 'ollama' ? (
+                    <>
+                      <Cpu className="size-3" aria-hidden /> Local AI
+                    </>
+                  ) : (
+                    'Simple summary'
+                  )}
+                </Badge>
+              </h2>
+              {editing ? (
+                <textarea
+                  aria-label="What you were doing"
+                  value={draft}
+                  maxLength={2000}
+                  rows={4}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="selectable w-full resize-y rounded-md border border-border bg-background p-2 text-[14px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                />
+              ) : (
+                <p className="selectable whitespace-pre-wrap text-[14px] leading-relaxed">
+                  {cp.summary}
+                </p>
+              )}
+              {cp.summarySource === 'template' &&
+                ai.data?.activeSource === 'template' &&
+                ai.data.download?.active && (
+                  <p className="mt-2 text-[12px] text-muted-foreground">
+                    Richer recaps start once the built-in AI model finishes downloading (
+                    <a
+                      href="#/settings"
+                      className="text-primary underline-offset-2 hover:underline"
+                    >
+                      see progress
+                    </a>
+                    ).
+                  </p>
+                )}
+            </section>
+          }
           onOpen={(index) => onPreview(false, index)}
         />
         {editing && (
@@ -437,53 +485,6 @@ function CheckpointDetail({
               </ul>
             </section>
           )}
-          <section
-            aria-labelledby="wywd"
-            className="mb-6 rounded-xl border border-border bg-muted/40 p-4"
-          >
-            <h2
-              id="wywd"
-              className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground"
-            >
-              What you were doing
-              <Badge tone={cp.summarySource === 'template' ? 'neutral' : 'accent'}>
-                {cp.summarySource === 'apple' ? (
-                  <>
-                    <Cpu className="size-3" aria-hidden /> Apple on-device AI
-                  </>
-                ) : cp.summarySource === 'ollama' ? (
-                  <>
-                    <Cpu className="size-3" aria-hidden /> Local AI
-                  </>
-                ) : (
-                  'Simple summary'
-                )}
-              </Badge>
-            </h2>
-            {editing ? (
-              <textarea
-                aria-label="What you were doing"
-                value={draft}
-                maxLength={2000}
-                rows={4}
-                onChange={(e) => setDraft(e.target.value)}
-                className="selectable w-full resize-y rounded-md border border-border bg-background p-2 text-[14px] leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              />
-            ) : (
-              <p className="selectable text-[14px] leading-relaxed">{cp.summary}</p>
-            )}
-            {cp.summarySource === 'template' &&
-              ai.data?.activeSource === 'template' &&
-              ai.data.download?.active && (
-                <p className="mt-2 text-[12px] text-muted-foreground">
-                  Richer recaps start once the built-in AI model finishes downloading (
-                  <a href="#/settings" className="text-primary underline-offset-2 hover:underline">
-                    see progress
-                  </a>
-                  ).
-                </p>
-              )}
-          </section>
 
           <h2 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
             Saved items{' '}
